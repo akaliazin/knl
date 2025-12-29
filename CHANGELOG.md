@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.1.0] - 2025-12-29
+
+### Added
+
+#### Know-How System
+- **Crumbs Framework**: New `know-how/crumbs/` directory for capturing carefully collated development knowledge
+  - Category-based organization (devops/, development/, testing/, security/, tooling/)
+  - YAML frontmatter metadata for LLM-friendly structured data
+  - GitHub Flavored Markdown throughout
+  - First crumb: `devops/github-pages-setup.md` - Complete guide for GitHub Pages deployment with GitHub Actions
+
+#### Documentation Improvements
+- **Separate docs requirements**: Created `docs/requirements.txt` for documentation-only dependencies
+  - Allows building docs with Python 3.12 while KNL requires Python 3.14+
+  - Separates concerns: docs build doesn't need KNL package installation
+- **Improved GitHub Actions workflow**:
+  - Fixed Python version compatibility (3.12 for docs build)
+  - Added cache-dependency-path for proper pip caching
+  - Workflow now successfully builds and deploys to GitHub Pages
+
+### Changed
+- Replaced `templates/` directory with `know-how/crumbs/` for better clarity
+  - "Templates" was misleading - these are knowledge articles, not code templates
+  - "Crumbs" better represents bite-sized, reusable knowledge pieces
+
+### Fixed
+- Documentation deployment to GitHub Pages now works correctly
+- GitHub Actions workflow permissions properly configured for Pages deployment
+
 ## [1.0.0] - 2025-12-29
 
 ### Added

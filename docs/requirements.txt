@@ -1,0 +1,6 @@
+# Documentation build dependencies
+# These are needed to build the MkDocs site, but do NOT require KNL itself
+mkdocs>=1.6.0
+mkdocs-terminal>=4.6.0
+mkdocs-autorefs>=1.0.0
+pymdown-extensions>=10.0
