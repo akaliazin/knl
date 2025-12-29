@@ -1,4 +1,4 @@
-.PHONY: help install dev test lint format type-check clean build
+.PHONY: help install dev test lint format type-check clean build docs docs-serve docs-deploy
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -57,3 +57,13 @@ init-test-repo: ## Initialize a test repository
 
 watch-test: ## Run tests in watch mode (requires pytest-watch)
 	ptw tests/ -- -v
+
+# Documentation
+docs: ## Build documentation
+	mkdocs build --clean --strict
+
+docs-serve: ## Serve documentation locally
+	mkdocs serve
+
+docs-deploy: ## Deploy documentation to GitHub Pages
+	mkdocs gh-deploy --clean --force

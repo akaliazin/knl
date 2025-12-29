@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block styles %}
+  {{ super() }}
+  <style>
+    /* Remove frames around code blocks */
+    pre {
+      border: none !important;
+      box-shadow: none !important;
+      font-size: 0.85em !important;
+    }
+
+    code {
+      border: none !important;
+      font-size: 0.85em !important;
+    }
+
+    .highlight pre {
+      border: none !important;
+      box-shadow: none !important;
+      font-size: 0.85em !important;
+    }
+
+    /* Inline code should also be smaller */
+    p code, li code, td code {
+      font-size: 0.85em !important;
+    }
+  </style>
+{% endblock %}

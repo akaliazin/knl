@@ -1,12 +1,12 @@
 [project]
 name = "knl"
-version = "0.1.0"
+version = "1.0.0"
 description = "Knowledge Retention Library - AI-powered task management and development assistant"
 readme = "README.md"
 requires-python = ">=3.14"
 license = { text = "MIT" }
 authors = [
-    { name = "Your Name", email = "your.email@example.com" }
+    { name = "Andrey Kaliazin", email = "akaliazin@gmail.com" }
 ]
 keywords = ["development", "ai", "task-management", "knowledge", "cli"]
 classifiers = [
@@ -79,11 +79,21 @@ dev = [
 
     # Documentation
     "mkdocs>=1.6.0",
-    "mkdocs-material>=9.5.0",
+    "mkdocs-terminal>=4.6.0",
+    "mkdocs-autorefs>=1.0.0",
+    "pymdown-extensions>=10.0",
 
     # Build tools
     "shiv>=1.0.0",
     "pex>=2.24.0",
+]
+
+docs = [
+    # Documentation only
+    "mkdocs>=1.6.0",
+    "mkdocs-terminal>=4.6.0",
+    "mkdocs-autorefs>=1.0.0",
+    "pymdown-extensions>=10.0",
 ]
 
 tui = [

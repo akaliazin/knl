@@ -2,6 +2,8 @@
 
 A modern, AI-powered task management and development assistant that helps you retain context, maintain quality, and ensure consistency across your development work.
 
+📚 **[Full Documentation](https://akaliazin.github.io/knl/)** | 🚀 **[Quick Start](https://akaliazin.github.io/knl/quickstart/)** | 🏗️ **[Architecture](https://akaliazin.github.io/knl/architecture/principles/)**
+
 ## What is KNL?
 
 KNL (Knowledge Retention Library) is a command-line tool that:
@@ -38,57 +40,105 @@ Think of it as a development assistant that learns from your work and helps you 
 
 ## Requirements
 
-- **Python 3.14+** (uses modern Python features)
+- **Python 3.8+** for installer (uses only stdlib)
+- **Python 3.14+** for KNL itself (uses modern Python features)
   - Version requirement specified in `pyproject.toml` (`requires-python`)
   - Installer automatically detects and validates the required version
-- **UV** (Python package manager)
-- Git repository (recommended)
+- **UV** (Python package manager - installer can install it for you)
+- Git repository (optional, but recommended)
 
 ## Quick Start
 
 ### Installation
 
-```bash
-# One-line installer (recommended)
-curl -LsSf https://raw.githubusercontent.com/yourusername/knl/main/install.sh | sh
+KNL supports two installation modes:
 
-# Or with wget
-wget -qO- https://raw.githubusercontent.com/yourusername/knl/main/install.sh | sh
+#### Repo-Local Installation (Default)
+
+When running the installer inside a git repository, KNL installs to `.knl/` in the current directory. This keeps KNL isolated per project.
+
+```bash
+cd your-repo
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh
 ```
 
+**Benefits:**
+- Each repository has its own isolated KNL installation
+- No PATH pollution
+- Easy to version-control KNL version per project
+- Minimal impact on repository (only `.knl/` and `.knowledge/` folders)
+
+**After installation:**
+```bash
+# Add to PATH for this session
+export PATH="$(pwd)/.knl/bin:$PATH"
+
+# Or add to your shell config for persistence
+echo 'export PATH="$(pwd)/.knl/bin:$PATH"' >> ~/.bashrc
+```
+
+#### User-Local Installation
+
+For system-wide installation, use the `--user-local` flag or run outside a git repository:
+
+```bash
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --user-local
+```
+
+This installs KNL to `~/.local/knl/` and automatically adds it to your PATH.
+
+**Benefits:**
+- Available globally across all projects
+- Only need to install once
+- Automatically added to PATH
+
+#### Version Management
+
+Install specific versions or refs:
+
+```bash
+# Install specific version
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --version v0.1.0
+
+# Install from branch or tag
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --ref develop
+
+# Install from custom repo
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --repo yourname/knl
+```
+
+#### What the Installer Does
+
 The installer is smart and will:
-1. **Auto-detect Python 3.14+** from PATH and common locations:
+1. **Find Python 3.8+** to run the installer itself (uses only stdlib)
+2. **Find Python 3.14+** for KNL from PATH and common locations:
    - User installations (`~/.local`, `~/bin`)
    - pyenv installations (`~/.pyenv/versions/`)
    - Homebrew (macOS: `/opt/homebrew`, `/usr/local`)
    - Conda/Miniconda environments
    - System installations
-2. **Prompt for Python path** if not found automatically
-3. **Show installation instructions** for Python 3.14+ (no sudo required):
-   - pyenv (recommended for Linux/macOS)
-   - Homebrew (macOS)
-   - Build from source to ~/.local
-   - python.org installers
-   - Miniconda
+3. **Detect git repository** and choose appropriate installation location
 4. Install UV if needed
-5. Install KNL using the detected Python
-6. Add to your PATH automatically
-7. Create initial configuration
+5. Create isolated virtual environment for KNL
+6. Install KNL using the detected Python
+7. Create wrapper scripts (`knl` and `kdt` alias)
+8. Update `.gitignore` (repo-local only)
+9. Create initial configuration in `~/.cache/knl/` (XDG-compliant)
 
-**Note:** No system/root privileges required. Everything installs to your home directory.
+**Note:** No sudo/root privileges required. Everything installs to user directories.
 
 ### Manual Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/knl.git
+git clone https://github.com/akaliazin/knl.git
 cd knl
 
-# Install with UV
-uv pip install -e .
-
-# Or use the installer
+# Run the installer
 ./install.sh
+
+# Or install with UV directly
+uv pip install -e .
 ```
 
 ## Usage
@@ -190,33 +240,72 @@ knl config edit --local
 
 ## Directory Structure
 
-### Global Configuration
-```
-~/.config/knl/
-├── config.toml       # Global settings
-├── templates/        # Default templates
-└── cache/           # Global cache
-```
+### KNL Installation Locations
 
-### Repository Structure
+#### Repo-Local Installation (Default in Git Repos)
 ```
 your-project/
-├── .knowledge/              # KNL knowledge base (git-ignored)
-│   ├── config.toml         # Local settings
-│   ├── cache/              # Local cache
-│   ├── tasks/              # Task storage
-│   │   ├── PROJ-123/
-│   │   │   ├── metadata.json
-│   │   │   ├── context.md
-│   │   │   ├── tests/
-│   │   │   └── artifacts/
-│   │   └── gh-456/         # GitHub #456
-│   ├── scripts/            # Repo-specific scripts
-│   ├── templates/          # Repo-specific templates
-│   └── standards/          # Development standards
-│       └── development.md
-└── .gitignore              # Updated to ignore .knowledge/
+├── .knl/                    # KNL installation (git-ignored)
+│   ├── venv/               # KNL's isolated Python environment
+│   ├── bin/                # Wrapper scripts (knl, kdt)
+│   └── .version            # Installed KNL version
+├── .knowledge/             # Knowledge base (git-ignored)
+│   └── [see below]
+└── .gitignore             # Updated to ignore .knl/ and .knowledge/
 ```
+
+#### User-Local Installation
+```
+~/.local/knl/               # KNL installation (system-wide)
+├── venv/                   # KNL's isolated Python environment
+├── bin/                    # Wrapper scripts (knl, kdt)
+└── .version                # Installed KNL version
+```
+
+### Global Configuration (XDG-Compliant)
+```
+~/.cache/knl/               # or $XDG_CACHE_HOME/knl/
+├── config.toml             # Global settings
+├── templates/              # Default templates
+└── cache/                  # Global cache
+```
+
+### Knowledge Base Structure
+```
+.knowledge/                 # Repository knowledge base (git-ignored)
+├── config.toml            # Local settings (override global)
+├── cache/                 # Local cache
+├── tasks/                 # Task storage
+│   ├── PROJ-123/
+│   │   ├── metadata.json  # Task metadata
+│   │   ├── context.md     # Development context
+│   │   ├── tests/         # Task-specific tests
+│   │   └── artifacts/     # Generated artifacts
+│   └── gh-456/            # GitHub #456 (normalized from #456)
+├── scripts/               # Repo-specific scripts
+├── templates/             # Repo-specific templates
+└── standards/             # Development standards
+    └── development.md
+```
+
+### Context Separation
+
+KNL maintains strict isolation between its own execution context and your repository:
+
+**KNL's Context** (`.knl/` or `~/.local/knl/`):
+- KNL's virtual environment
+- KNL's Python packages
+- Completely isolated from your repository
+
+**Your Repository's Context**:
+- Your code and dependencies
+- Your virtual environment (if any)
+- Completely isolated from KNL
+
+**Benefits:**
+- KNL never pollutes your project dependencies
+- KNL can work on projects with incompatible Python versions
+- No PYTHONPATH, PATH, or environment variable leaking
 
 ## Configuration
 
@@ -265,7 +354,7 @@ api_key = ""  # Or use Claude Code
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/knl.git
+git clone https://github.com/akaliazin/knl.git
 cd knl
 
 # Install dependencies
@@ -332,8 +421,8 @@ MIT License - see LICENSE file for details
 
 ## Support
 
-- Issues: https://github.com/yourusername/knl/issues
-- Discussions: https://github.com/yourusername/knl/discussions
+- Issues: https://github.com/akaliazin/knl/issues
+- Discussions: https://github.com/akaliazin/knl/discussions
 
 ## Acknowledgments
 

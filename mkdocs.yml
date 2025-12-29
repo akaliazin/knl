@@ -1,0 +1,68 @@
+site_name: KNL - Knowledge Retention Library
+site_description: AI-powered task management and development assistant
+site_author: akaliazin
+site_url: https://akaliazin.github.io/knl
+
+repo_name: akaliazin/knl
+repo_url: https://github.com/akaliazin/knl
+edit_uri: edit/main/docs/
+
+theme:
+  name: terminal
+  palette: light
+  features:
+    - navigation.expand
+    - navigation.sections
+  custom_dir: docs/overrides
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.snippets
+  - pymdownx.tabbed:
+      alternate_style: true
+  - attr_list
+  - md_in_html
+  - tables
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: installation.md
+      - Quick Start: quickstart.md
+      - Configuration: configuration.md
+  - User Guide:
+      - Task Management: guide/tasks.md
+      - Knowledge Base: guide/knowledge.md
+      - Git Integration: guide/git.md
+  - Architecture:
+      - Principles: architecture/principles.md
+      - Installation Modes: architecture/installation.md
+      - Context Separation: architecture/context.md
+  - CLI Reference:
+      - Commands: cli/commands.md
+      - Task Commands: cli/tasks.md
+      - Config Commands: cli/config.md
+  - Development:
+      - Contributing: development/contributing.md
+      - Development Setup: development/setup.md
+      - Testing: development/testing.md
+
+plugins:
+  - search
+  - autorefs
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/akaliazin/knl
+  version:
+    provider: mike
+
+copyright: Copyright &copy; 2025 akaliazin

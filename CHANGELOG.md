@@ -1,0 +1,154 @@
+# Changelog
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] - 2025-12-29
+
+### Added
+
+#### Core Features
+- **Task Management**: JIRA-style (`PROJ-123`) and GitHub-style (`#456`) task tracking
+- **Knowledge Base**: Local `.knowledge/` directory for persistent task context
+- **Configuration System**: Hierarchical TOML-based configuration (global + local)
+- **CLI Commands**: `init`, `create`, `list`, `show`, `update`, `delete`, `config`
+- **Task Context**: Markdown-based context files for each task
+- **Task Metadata**: JSON metadata tracking status, timestamps, tags, and links
+
+#### Installation & Deployment
+- **Dual Installation Modes**:
+  - Repo-local (`.knl/` in repository)
+  - User-local (`~/.local/knl/`)
+- **Heredoc-Based Installer**: Python 3.8+ installer using only stdlib
+- **Python Version Detection**: Auto-detects Python 3.14+ from multiple sources
+- **UV Integration**: Automatic UV installation if needed
+- **Context Isolation**: Strict separation between KNL and target repository environments
+- **XDG Compliance**: Configuration in `~/.cache/knl/` or `$XDG_CACHE_HOME/knl/`
+
+#### Documentation
+- **MkDocs Site**: Comprehensive documentation with Material theme
+- **GitHub Pages**: Auto-deployment via GitHub Actions
+- **Clean URLs**: Installer available at `https://akaliazin.github.io/knl/install.sh`
+- **Guides**: Installation, Quick Start, Configuration, Task Management, Architecture
+- **API Reference**: Complete CLI command documentation
+
+#### Architecture
+- **Python Version Pinning**: `.python-version` files for stability
+- **CLAUDE.md Management**: Language-aware documentation generation
+- **Language Detection**: Automatic detection of Python, Java/Groovy, Node.js, Go, Rust, Ruby
+- **Template System**: Language-specific CLAUDE.md templates
+- **Minimal Repository Impact**: Only `.knl/`, `.knowledge/`, and `.gitignore` modifications
+
+#### Development
+- **Typer CLI Framework**: Modern, type-safe CLI with Rich output
+- **Pydantic Models**: Type-safe configuration and task models
+- **Comprehensive Testing**: pytest-based test suite
+- **Code Quality Tools**: ruff, mypy, pytest with coverage
+- **Makefile**: Common development tasks (`make test`, `make lint`, `make docs`)
+
+### Features
+
+- Task ID format auto-detection from git branch names
+- Repository-specific configuration overrides
+- Git integration for task workflows
+- Task archiving and deletion
+- Status tracking (todo, in_progress, in_review, done, blocked, cancelled)
+- Task templates for common patterns
+- Artifact and test file organization per task
+- Color terminal output with Rich formatting
+- Environment variable overrides (`KNL_*` prefix)
+
+### Documentation
+
+- Installation guide with troubleshooting
+- Quick start tutorial with common workflows
+- Configuration reference with examples
+- Task management deep dive
+- Architecture principles and design philosophy
+- CLI reference documentation
+- Development setup guide
+- Roadmap for future phases
+
+### Technical Details
+
+- **Language**: Python 3.14+
+- **Package Manager**: UV
+- **CLI Framework**: Typer + Rich
+- **Configuration**: Pydantic Settings + TOML
+- **Documentation**: MkDocs with Material theme
+- **Testing**: pytest + hypothesis
+- **Code Quality**: ruff + mypy
+- **License**: MIT
+
+### Infrastructure
+
+- GitHub Actions workflow for documentation deployment
+- GitHub Pages integration
+- Version management via git tags
+- Automatic installer updates on release
+
+### Project Principles
+
+Documented in PRINCIPLES.md:
+- Knowledge retention and learning
+- AI-powered development assistance
+- Task-centric organization
+- Context separation and isolation
+- Minimal repository impact
+- Language-aware templates
+- Python version pinning
+- User control and approval
+
+### Known Limitations
+
+- AI integration (Claude) not yet implemented
+- Test generation features planned for Phase 3
+- Git workflow automation planned for Phase 5
+- Knowledge export/import planned for Phase 6
+- Interactive TUI planned for Phase 7
+
+## [Unreleased]
+
+### Planned Features
+
+#### Phase 2: AI Integration
+- MCP server for Claude Code
+- Code quality analysis
+- Pattern recognition
+- Smart suggestions
+
+#### Phase 3: Test Automation
+- Test generation from context
+- Test templates from history
+- Coverage tracking
+- Quality metrics
+
+#### Phase 4: Documentation
+- Automated documentation updates
+- Consistency checking
+- Cross-referencing
+- mkdocs integration
+
+#### Phase 5: Git Workflow
+- Commit message generation
+- PR summary creation
+- Branch naming suggestions
+- Changelog automation
+
+#### Phase 6: Knowledge Transfer
+- Export/import knowledge bases
+- Best practice summarization
+- Cross-project learning
+- Template sharing
+
+#### Phase 7: Advanced Features
+- Interactive TUI (Textual)
+- Real-time collaboration
+- Analytics and insights
+- Custom plugins
+
+---
+
+[1.0.0]: https://github.com/akaliazin/knl/releases/tag/v1.0.0
