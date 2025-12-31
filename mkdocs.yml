@@ -49,6 +49,7 @@ nav:
       - Commands: cli/commands.md
       - Task Commands: cli/tasks.md
       - Config Commands: cli/config.md
+      - Crumb Commands: cli/crumbs.md
   - Development:
       - Contributing: development/contributing.md
       - Development Setup: development/setup.md

@@ -21,6 +21,14 @@ Choose your installation mode:
     # PATH is automatically configured
     ```
 
+=== "Compiled Binary (Portable)"
+
+    ```bash
+    # Requires only Python 3.8+, no UV needed
+    curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --compiled
+    export PATH="$(pwd)/.knl/bin:$PATH"
+    ```
+
 Verify installation:
 
 ```bash
@@ -43,13 +51,28 @@ This creates:
 
 ```
 your-project/
+├── .knl/                # KNL installation (git-ignored)
+│   ├── know-how/       # Knowledge crumbs - curated dev knowledge
+│   │   └── crumbs/     # Browse for helpful guides!
+│   └── bin/            # Wrapper scripts
 ├── .knowledge/          # Knowledge base (git-ignored)
 │   ├── config.toml     # Local settings
 │   ├── tasks/          # Task storage
 │   ├── templates/      # Task templates
 │   └── standards/      # Development standards
-└── .gitignore          # Updated to exclude .knowledge/
+└── .gitignore          # Updated to exclude .knl/ and .knowledge/
 ```
+
+!!! tip "Explore Knowledge Crumbs"
+    KNL includes curated development knowledge in `.knl/know-how/crumbs/`.
+    These are bite-sized, actionable guides for common tasks like:
+
+    - DevOps: Deployment, CI/CD, infrastructure
+    - Testing: Testing strategies, frameworks
+    - Security: Security best practices
+    - Development: Patterns, workflows
+
+    Browse with: `ls .knl/know-how/crumbs/`
 
 ## Step 3: Create Your First Task
 
@@ -268,7 +291,23 @@ KNL creates `.knowledge/standards/development.md` - use it to:
 - Define testing requirements
 - Establish git workflows
 
-### 5. Regular Task Reviews
+### 5. Browse Knowledge Crumbs
+
+Explore curated development knowledge:
+```bash
+# List available crumbs
+ls .knl/know-how/crumbs/
+
+# Read a crumb
+cat .knl/know-how/crumbs/devops/github-pages-setup.md
+
+# Search for specific topics
+grep -r "deployment" .knl/know-how/crumbs/
+```
+
+Crumbs are LLM-friendly with YAML metadata, making them perfect for AI-assisted development.
+
+### 6. Regular Task Reviews
 
 Periodically review completed tasks:
 ```bash

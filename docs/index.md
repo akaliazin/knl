@@ -1,4 +1,7 @@
-# KNL - Knowledge Retention Library
+<div style="display: flex; justify-content: space-between; align-items: baseline;">
+  <h1>KNL - Knowledge Retention Library</h1>
+  <div style="font-size: 0.85em; color: #666; white-space: nowrap;">v1.2.0 | Updated: 2025-12-31</div>
+</div>
 
 A modern, AI-powered task management and development assistant that helps you retain context, maintain quality, and ensure consistency across your development work.
 
@@ -25,6 +28,9 @@ Powered by Claude Code via MCP (Model Context Protocol) for code quality analysi
 
 ### 📚 Knowledge Base
 Local `.knowledge/` directory stores task history, learns and applies development standards, exports knowledge to new projects, with archive or reset options.
+
+### 🍞 Knowledge Crumbs
+Curated development knowledge deployed with KNL - bite-sized, actionable guides for DevOps, Testing, Security, and Development tasks. LLM-friendly format with YAML metadata.
 
 ### 🔧 Context Isolation
 Strict separation between KNL and your project - KNL runs in its own virtual environment, never pollutes your dependencies, and works with any Python version.
@@ -53,6 +59,16 @@ Strict separation between KNL and your project - KNL runs in its own virtual env
     ```
 
     This installs to `~/.local/knl/` and adds to your PATH automatically.
+
+=== "Compiled Binary"
+
+    Maximum portability with minimal dependencies:
+
+    ```bash
+    curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --compiled
+    ```
+
+    Requires only Python 3.8+ (vs 3.14+ for source). Perfect for CI/CD and distribution.
 
 ### Initialize in Your Repository
 

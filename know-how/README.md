@@ -144,7 +144,7 @@ tags: ["relevant", "tags", "here"]
 difficulty: "beginner"
 created: "2025-12-29"
 updated: "2025-12-29"
-author: "Your Name"
+author: "Claude Sonnet 4.5"
 related: []
 prerequisites:
   - "What's needed before starting"

@@ -47,6 +47,15 @@ clean: ## Clean build artifacts and caches
 build: ## Build distribution packages
 	uv build
 
+build-binary: ## Build standalone executable with shiv
+	@echo "Building standalone KNL binary..."
+	@rm -f dist/knl.pyz
+	@mkdir -p dist
+	shiv -c knl -o dist/knl.pyz -e knl.cli:app .
+	@chmod +x dist/knl.pyz
+	@echo "Binary created: dist/knl.pyz"
+	@echo "Test with: ./dist/knl.pyz --version"
+
 run: ## Run knl CLI
 	uv run knl
 

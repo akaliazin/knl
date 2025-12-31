@@ -1,13 +1,21 @@
 # Installation
 
-KNL supports two installation modes: **repo-local** (isolated per repository) and **user-local** (system-wide).
+KNL supports multiple installation modes and formats for maximum flexibility.
 
 ## Requirements
+
+### Source Installation (Default)
 
 - **Python 3.8+** for installer (uses only stdlib)
 - **Python 3.14+** for KNL itself (uses modern Python features)
 - **UV** (Python package manager - installer can install it for you)
 - **Git repository** (optional, but recommended)
+
+### Compiled Binary Installation (Portable)
+
+- **Python 3.8+** to run the compiled binary
+- **Git repository** (optional, but recommended)
+- No UV or virtual environment needed
 
 ## Installation Modes
 
@@ -53,24 +61,55 @@ This installs KNL to `~/.local/knl/` and automatically adds it to your PATH.
 - Only need to install once
 - Automatically added to PATH
 
+### Compiled Binary Installation
+
+For maximum portability and minimal dependencies:
+
+```bash
+# Install latest compiled binary (requires only Python 3.8+)
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --compiled
+
+# Install specific version
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --compiled --version v1.2.0
+
+# Install from local binary (for offline/airgapped environments)
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --compiled --binary-path /path/to/knl.pyz
+
+# User-local compiled installation
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --compiled --user-local
+```
+
+**Benefits:**
+
+- **Portable** - Single ~52MB self-contained file
+- **Minimal Requirements** - Only Python 3.8+ needed (vs 3.14+ for source)
+- **No Dependencies** - No UV or virtual environment required
+- **Fast Deployment** - Perfect for CI/CD and distribution
+- **Offline Ready** - Use `--binary-path` for airgapped environments
+
 ## Version Management
 
 Install specific versions or refs:
 
 ```bash
-# Install specific version
-curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --version v0.1.0
+# Install specific version (source)
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --version v1.2.0
 
 # Install from branch or tag
 curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --ref develop
 
 # Install from custom repo
 curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --repo yourname/knl
+
+# Combine options (compiled + version + user-local)
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --compiled --version v1.2.0 --user-local
 ```
 
 ## What the Installer Does
 
-The installer is smart and will:
+The installer is smart and adapts based on installation mode:
+
+### Source Installation (Default)
 
 1. **Find Python 3.8+** to run the installer itself (uses only stdlib)
 2. **Find Python 3.14+** for KNL from PATH and common locations:
@@ -80,12 +119,39 @@ The installer is smart and will:
    - Conda/Miniconda environments
    - System installations
 3. **Detect git repository** and choose appropriate installation location
-4. Install UV if needed
+4. Install UV if needed (prompts if not found)
 5. Create isolated virtual environment for KNL
-6. Install KNL using the detected Python
+6. Install KNL and dependencies using the detected Python
 7. Create wrapper scripts (`knl` and `kdt` alias)
-8. Update `.gitignore` (repo-local only)
-9. Create initial configuration in `~/.cache/knl/` (XDG-compliant)
+8. **Deploy knowledge crumbs** - curated development knowledge
+9. Update `.gitignore` (repo-local only)
+10. Create initial configuration in `~/.cache/knl/` (XDG-compliant)
+
+### Compiled Binary Installation (`--compiled`)
+
+1. **Find Python 3.8+** to run the binary (less restrictive than source)
+2. **Download or copy binary**:
+   - Downloads from GitHub releases (if `--version` specified)
+   - Copies from local path (if `--binary-path` specified)
+   - Uses latest release (if neither specified)
+3. Install binary to appropriate location
+4. Create wrapper scripts (`knl` and `kdt` alias)
+5. **Deploy knowledge crumbs** - curated development knowledge
+6. Update `.gitignore` (repo-local only)
+7. Create initial configuration
+
+### Knowledge Crumbs Deployment
+
+Both installation modes deploy **knowledge crumbs** - curated, reusable development knowledge:
+
+- Organized by category: DevOps, Testing, Security, Development
+- LLM-friendly format with YAML frontmatter
+- Self-contained, actionable guides
+- Located in `<install-dir>/know-how/crumbs/`
+
+Example crumbs:
+- `devops/github-pages-setup.md` - GitHub Pages deployment guide
+- More crumbs added with each release
 
 !!! note "No sudo required"
     All installation happens in user directories. No root privileges needed.
@@ -97,11 +163,33 @@ The installer is smart and will:
 git clone https://github.com/akaliazin/knl.git
 cd knl
 
-# Run the installer
+# Option 1: Run the installer (recommended)
 ./install.sh
 
-# Or install with UV directly
+# Option 2: Install with UV directly
 uv pip install -e .
+
+# Option 3: Build and install compiled binary
+make build-binary
+./install.sh --compiled --binary-path ./dist/knl.pyz
+```
+
+### Building Compiled Binary
+
+To create your own compiled binary:
+
+```bash
+# Install shiv if not already installed
+uv pip install shiv
+
+# Build binary (creates dist/knl.pyz)
+make build-binary
+
+# Test the binary
+./dist/knl.pyz --version
+
+# Install from local binary
+./install.sh --compiled --binary-path ./dist/knl.pyz
 ```
 
 ## Verifying Installation
@@ -115,6 +203,13 @@ which knl
 
 # View help
 knl --help
+
+# Browse available knowledge crumbs
+ls ~/.local/knl/know-how/crumbs/     # for user-local
+ls .knl/know-how/crumbs/              # for repo-local
+
+# Read a crumb
+cat ~/.local/knl/know-how/crumbs/devops/github-pages-setup.md
 ```
 
 ## Upgrading

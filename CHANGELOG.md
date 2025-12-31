@@ -5,6 +5,75 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.0] - 2025-12-31
+
+### Added
+
+#### Knowledge Crumbs Command (`knl crumb`)
+- **New CLI command** for browsing and managing knowledge crumbs
+- **Six core subcommands**:
+  - `knl crumb list` - List all crumbs with filtering and sorting
+  - `knl crumb show <path>` - Display full crumb content with rich markdown rendering
+  - `knl crumb info <path>` - Display crumb metadata
+  - `knl crumb find <query>` - Search crumbs by content and metadata
+  - `knl crumb categories` - List all categories with counts
+  - `knl crumb tags` - List all tags with usage counts
+- **Filtering options**: Filter by category, tags, difficulty level
+- **Sorting options**: Sort by title, created date, updated date, difficulty, category
+- **Output formats**: Table (default), compact, JSON
+- **Search capabilities**: Search in specific fields (title, description, tags, content) with case-sensitive option
+- **Rich formatting**: Beautiful table output, syntax-highlighted markdown rendering
+- **Custom YAML parser**: No external dependencies for frontmatter parsing
+
+#### Compiled Binary Installation
+- **New `--compiled` flag** for portable installation mode
+- **Minimal dependencies**: Requires only Python 3.8+ (vs 3.14+ for source installation)
+- **Self-contained executable**: Single ~52MB `.pyz` file with all dependencies bundled
+- **Offline installation**: Support for airgapped environments via `--binary-path` flag
+- **Build automation**: New `make build-binary` target using shiv
+- **Perfect for**: CI/CD pipelines, distribution, restricted environments
+
+#### Knowledge Crumbs Deployment
+- **Automatic deployment** during installation (both source and compiled modes)
+- **Curated development knowledge**: Actionable guides for common development tasks
+- **Category organization**: DevOps, Testing, Security, Development, Tooling
+- **LLM-friendly format**: YAML frontmatter with comprehensive metadata
+- **Installation locations**: `.knl/know-how/crumbs/` (repo-local) or `~/.local/knl/know-how/crumbs/` (user-local)
+- **First crumb included**: GitHub Pages deployment guide
+
+### Changed
+
+#### Installer Enhancements
+- **Enhanced `install.sh`** with new installation modes
+- **New functions**:
+  - `deploy_crumbs()` - Deploys knowledge crumbs to installation directory
+  - `install_compiled_binary()` - Handles compiled binary installation
+- **Updated wrapper scripts** to support both source and compiled modes
+- **Installation summary** now shows crumb count and location
+
+#### Documentation Updates
+- **Comprehensive installation guide** with source vs compiled comparison
+- **All docs updated** with crumb command examples
+- **Installation tabs** added for different modes (source, compiled, repo-local, user-local)
+- **Updated files**: README.md, docs/installation.md, docs/quickstart.md, docs/index.md, docs/development/setup.md
+
+### Technical Details
+
+#### New Components
+- **`src/knl/models/crumb.py`**: Pydantic models for Crumb and CrumbMetadata
+- **`src/knl/core/crumbs.py`**: CrumbManager for parsing YAML frontmatter and querying crumbs
+- **`src/knl/commands/crumb.py`**: CLI interface with Rich formatting (388 lines)
+- **Custom YAML parser**: Handles both inline JSON lists and multi-line YAML lists
+
+#### Statistics
+- **14 files changed**: 1,339 insertions(+), 93 deletions(-)
+- **3 new files created**: Models, core logic, and CLI commands
+- **Binary size**: ~52MB self-contained executable
+
+### Impact
+
+This release transforms KNL from a task management tool into a comprehensive knowledge management system. Users can now easily discover and browse curated development knowledge without resorting to raw `ls` and `cat` commands. The compiled binary option makes KNL accessible to a wider range of environments and use cases.
+
 ## [1.1.0] - 2025-12-29
 
 ### Added
@@ -180,4 +249,6 @@ Documented in PRINCIPLES.md:
 
 ---
 
+[1.2.0]: https://github.com/akaliazin/knl/releases/tag/v1.2.0
+[1.1.0]: https://github.com/akaliazin/knl/releases/tag/v1.1.0
 [1.0.0]: https://github.com/akaliazin/knl/releases/tag/v1.0.0

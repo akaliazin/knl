@@ -168,6 +168,30 @@ knl/
 └── README.md             # Project readme
 ```
 
+## Building Compiled Binary
+
+For creating portable distributions:
+
+```bash
+# Install shiv if needed
+uv pip install shiv
+
+# Build standalone binary (creates dist/knl.pyz)
+make build-binary
+
+# Test the binary
+./dist/knl.pyz --version
+
+# Install from local binary
+./install.sh --compiled --binary-path ./dist/knl.pyz
+```
+
+The compiled binary:
+- Bundles all dependencies (~52MB)
+- Requires only Python 3.8+ to run
+- No UV or virtual environment needed
+- Perfect for distribution and CI/CD
+
 ## Common Tasks
 
 ### Adding a New Command
