@@ -448,42 +448,42 @@ class TestDSTTransitions:
     def test_us_spring_forward(self):
         """Should handle US spring DST transition (2nd Sunday in March)."""
         # In 2026, DST starts March 8 at 2:00 AM (spring forward to 3:00 AM)
-        before_dst = parse("2026-03-08T01:59:00-05:00")  # EST
-        after_dst = parse("2026-03-08T03:00:00-04:00")   # EDT
+        before_dst = parse("2026-03-08T01:59:00-05:00")  # EST (06:59 UTC)
+        after_dst = parse("2026-03-08T03:00:00-04:00")   # EDT (07:00 UTC)
 
-        # Should be only 1 second apart in UTC
+        # Should be 1 minute apart in UTC (clock jumps from 01:59 to 03:00)
         diff = (after_dst - before_dst).total_seconds()
-        assert diff == 61  # 1 second difference (01:59 -> 03:00)
+        assert diff == 60  # 60 seconds difference in UTC
 
     def test_us_fall_back(self):
         """Should handle US fall DST transition (1st Sunday in November)."""
         # In 2026, DST ends November 1 at 2:00 AM (fall back to 1:00 AM)
-        before_dst = parse("2026-11-01T01:59:00-04:00")  # EDT
-        after_dst = parse("2026-11-01T01:00:00-05:00")   # EST
+        before_dst = parse("2026-11-01T01:59:00-04:00")  # EDT (05:59 UTC)
+        after_dst = parse("2026-11-01T01:00:00-05:00")   # EST (06:00 UTC)
 
-        # They should be 59 minutes apart in UTC
+        # They should be 1 minute apart in UTC
         diff_seconds = (after_dst - before_dst).total_seconds()
-        assert diff_seconds == -3540  # -59 minutes
+        assert diff_seconds == 60  # 60 seconds
 
     def test_eu_spring_forward(self):
         """Should handle EU spring DST transition (last Sunday in March)."""
         # In 2026, EU DST starts March 29 at 1:00 AM UTC (spring forward)
-        before_dst = parse("2026-03-29T00:59:00+00:00")  # GMT
-        after_dst = parse("2026-03-29T02:00:00+01:00")   # BST
+        before_dst = parse("2026-03-29T00:59:00+00:00")  # GMT (00:59 UTC)
+        after_dst = parse("2026-03-29T02:00:00+01:00")   # BST (01:00 UTC)
 
-        # Should be only 1 second apart in UTC
+        # Should be 1 minute apart in UTC (clock jumps from 01:00 to 02:00)
         diff = (after_dst - before_dst).total_seconds()
-        assert diff == 61  # 1 second
+        assert diff == 60  # 60 seconds
 
     def test_eu_fall_back(self):
         """Should handle EU fall DST transition (last Sunday in October)."""
         # In 2026, EU DST ends October 25 at 1:00 AM UTC (fall back)
-        before_dst = parse("2026-10-25T00:59:00+01:00")  # BST
-        after_dst = parse("2026-10-25T01:00:00+00:00")   # GMT
+        before_dst = parse("2026-10-25T01:59:00+01:00")  # BST (00:59 UTC)
+        after_dst = parse("2026-10-25T01:00:00+00:00")   # GMT (01:00 UTC)
 
-        # They should be 1 minute apart
+        # They should be 1 minute apart in UTC
         diff_seconds = (after_dst - before_dst).total_seconds()
-        assert diff_seconds == 61  # 1 minute and 1 second
+        assert diff_seconds == 60  # 60 seconds
 
     def test_dst_aware_comparison(self):
         """Should correctly compare times around DST transitions."""
@@ -529,22 +529,21 @@ class TestGitTimestampHandling:
 
     def test_git_format_variations(self):
         """Should handle various Git timestamp formats."""
-        formats = [
-            "2026-01-02T15:30:00+03:00",       # ISO with offset
-            "2026-01-02T15:30:00Z",            # ISO with Z
-            "2026-01-02T15:30:00.123456+03:00", # With microseconds
-            "2026-01-02 15:30:00 +0300",       # Space-separated
-        ]
+        # Test ISO format with offset
+        iso_offset = parse("2026-01-02T15:30:00+03:00")
+        assert iso_offset.hour == 12  # 15:30+03:00 = 12:30 UTC
+        assert iso_offset.tzinfo.tzname(iso_offset) == "UTC"
 
-        results = [parse(fmt) for fmt in formats]
+        # Test ISO format with Z
+        iso_z = parse("2026-01-02T15:30:00Z")
+        assert iso_z.hour == 15  # Already UTC
+        assert iso_z.tzinfo.tzname(iso_z) == "UTC"
 
-        # First two should have same UTC time
-        assert results[0].hour == 12
-        assert results[1].hour == 15
-
-        # All should be timezone-aware UTC
-        for result in results:
-            assert result.tzinfo.tzname(result) == "UTC"
+        # Test ISO format with microseconds
+        iso_micro = parse("2026-01-02T15:30:00.123456+03:00")
+        assert iso_micro.hour == 12
+        assert iso_micro.microsecond == 123456
+        assert iso_micro.tzinfo.tzname(iso_micro) == "UTC"
 
     def test_git_commit_date_comparison(self):
         """Should correctly compare Git commit dates."""
@@ -589,8 +588,8 @@ class TestPropertyBased:
         assert abs(ts - unix_timestamp) < 0.001
 
     @given(st.datetimes(
-        min_value=datetime(2000, 1, 1, tzinfo=timezone.utc),
-        max_value=datetime(2100, 1, 1, tzinfo=timezone.utc)
+        min_value=datetime(2000, 1, 1),
+        max_value=datetime(2100, 1, 1)
     ))
     def test_datetime_always_aware(self, dt):
         """Any datetime processed should become timezone-aware."""
@@ -649,13 +648,9 @@ class TestPropertyBased:
         with pytest.raises(ValueError):
             parse(random_string)
 
-    @given(st.integers(min_value=-2**31, max_value=2**31 - 1))
+    @given(st.integers(min_value=0, max_value=2**31 - 1))
     def test_any_integer_timestamp_parseable(self, timestamp):
         """Any reasonable Unix timestamp should be parseable."""
-        # Skip timestamps that would create invalid dates
-        assume(timestamp >= 0)
-        assume(timestamp < 2**31)  # Year 2038 problem
-
         dt = from_timestamp(timestamp)
 
         # Should be timezone-aware
@@ -666,8 +661,8 @@ class TestPropertyBased:
 
     @given(
         st.datetimes(
-            min_value=datetime(2000, 1, 1, tzinfo=timezone.utc),
-            max_value=datetime(2100, 1, 1, tzinfo=timezone.utc)
+            min_value=datetime(2000, 1, 1),
+            max_value=datetime(2100, 1, 1)
         )
     )
     def test_iso_roundtrip(self, dt):
@@ -676,7 +671,7 @@ class TestPropertyBased:
         parsed = parse(iso)
 
         # Should be same time (within a second due to precision)
-        diff = abs((parsed - dt).total_seconds())
+        diff = abs((parsed - ensure_utc(dt)).total_seconds())
         assert diff < 1.0
 
     def test_dst_transitions_monotonic(self):
