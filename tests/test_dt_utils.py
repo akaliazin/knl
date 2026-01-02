@@ -1,21 +1,28 @@
 """Tests for datetime utilities."""
 
-import pytest
-from datetime import datetime, timezone, timedelta
+from datetime import UTC, datetime, timedelta, timezone
+
 import pendulum
-from hypothesis import given, strategies as st, assume
-from hypothesis.extra.pytz import timezones
+import pytest
+from hypothesis import assume, given
+from hypothesis import strategies as st
 
 from src.knl.utils.dt import (
-    now,
-    parse,
     ensure_utc,
-    to_iso,
     from_timestamp,
-    to_timestamp,
     human_diff,
     is_aware,
+    now,
+    parse,
+    to_iso,
+    to_timestamp,
 )
+
+
+def get_tzname(dt: datetime) -> str:
+    """Get timezone name, asserting tzinfo is not None."""
+    assert dt.tzinfo is not None, "datetime must be timezone-aware"
+    return dt.tzinfo.tzname(dt)  # type: ignore[return-value]
 
 
 class TestNow:
@@ -34,13 +41,13 @@ class TestNow:
     def test_is_utc(self):
         """Should return UTC timezone."""
         result = now()
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_close_to_current_time(self):
         """Should return time close to actual current time."""
-        before = datetime.now(timezone.utc)
+        before = datetime.now(UTC)
         result = now()
-        after = datetime.now(timezone.utc)
+        after = datetime.now(UTC)
 
         assert before <= result <= after
 
@@ -73,7 +80,7 @@ class TestParse:
 
         assert result.year == 2026
         assert result.hour == 15
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_parse_datetime_object_naive(self):
         """Should convert naive datetime to UTC."""
@@ -92,7 +99,7 @@ class TestParse:
 
         assert result.year == 2026
         assert result.hour == 12  # Converted from Moscow to UTC
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_parse_pendulum_object(self):
         """Should handle pendulum objects."""
@@ -123,16 +130,16 @@ class TestEnsureUtc:
 
         assert result.year == 2026
         assert result.hour == 15
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_aware_utc_unchanged(self):
         """Should keep UTC datetime unchanged."""
-        utc_dt = datetime(2026, 1, 2, 15, 30, tzinfo=timezone.utc)
+        utc_dt = datetime(2026, 1, 2, 15, 30, tzinfo=UTC)
         result = ensure_utc(utc_dt)
 
         assert result.year == 2026
         assert result.hour == 15
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_aware_non_utc_converts(self):
         """Should convert non-UTC timezone to UTC."""
@@ -142,7 +149,7 @@ class TestEnsureUtc:
 
         assert result.year == 2026
         assert result.hour == 6  # 15:30 JST = 06:30 UTC
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_preserves_datetime_type(self):
         """Should return datetime (not pendulum) object."""
@@ -158,7 +165,7 @@ class TestToIso:
 
     def test_formats_to_iso8601(self):
         """Should format datetime as ISO 8601 string."""
-        dt = datetime(2026, 1, 2, 15, 30, 0, tzinfo=timezone.utc)
+        dt = datetime(2026, 1, 2, 15, 30, 0, tzinfo=UTC)
         result = to_iso(dt)
 
         assert "2026-01-02" in result
@@ -166,7 +173,7 @@ class TestToIso:
 
     def test_includes_timezone(self):
         """Should include timezone information."""
-        dt = datetime(2026, 1, 2, 15, 30, 0, tzinfo=timezone.utc)
+        dt = datetime(2026, 1, 2, 15, 30, 0, tzinfo=UTC)
         result = to_iso(dt)
 
         # Should have either Z or +00:00
@@ -199,7 +206,7 @@ class TestFromTimestamp:
         ts = 1767312000
         result = from_timestamp(ts)
 
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_handles_integer_timestamp(self):
         """Should handle integer timestamps."""
@@ -217,7 +224,7 @@ class TestToTimestamp:
 
     def test_converts_datetime_to_timestamp(self):
         """Should convert datetime to Unix timestamp."""
-        dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=UTC)
         result = to_timestamp(dt)
 
         assert isinstance(result, float)
@@ -233,7 +240,7 @@ class TestToTimestamp:
 
     def test_roundtrip_timestamp(self):
         """Should roundtrip: datetime -> timestamp -> datetime."""
-        original = datetime(2026, 1, 2, 15, 30, 45, tzinfo=timezone.utc)
+        original = datetime(2026, 1, 2, 15, 30, 45, tzinfo=UTC)
         ts = to_timestamp(original)
         restored = from_timestamp(ts)
 
@@ -250,8 +257,8 @@ class TestHumanDiff:
 
     def test_diff_with_past_datetime(self):
         """Should describe past datetime."""
-        past = datetime(2026, 1, 1, 0, 0, 0, tzinfo=timezone.utc)
-        now_dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        past = datetime(2026, 1, 1, 0, 0, 0, tzinfo=UTC)
+        now_dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=UTC)
 
         result = human_diff(past, now_dt)
 
@@ -261,8 +268,8 @@ class TestHumanDiff:
 
     def test_diff_with_future_datetime(self):
         """Should describe future datetime."""
-        future = datetime(2026, 1, 3, 0, 0, 0, tzinfo=timezone.utc)
-        now_dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        future = datetime(2026, 1, 3, 0, 0, 0, tzinfo=UTC)
+        now_dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=UTC)
 
         result = human_diff(future, now_dt)
 
@@ -271,7 +278,7 @@ class TestHumanDiff:
     def test_diff_without_other_uses_now(self):
         """Should use current time if other is None."""
         # Create a datetime a few seconds ago
-        past = datetime.now(timezone.utc) - timedelta(seconds=5)
+        past = datetime.now(UTC) - timedelta(seconds=5)
 
         result = human_diff(past)
 
@@ -293,7 +300,7 @@ class TestIsAware:
 
     def test_aware_datetime_returns_true(self):
         """Should return True for timezone-aware datetime."""
-        aware_dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=timezone.utc)
+        aware_dt = datetime(2026, 1, 2, 0, 0, 0, tzinfo=UTC)
         assert is_aware(aware_dt) is True
 
     def test_naive_datetime_returns_false(self):
@@ -342,10 +349,10 @@ class TestIntegration:
         assert is_aware(dt4)
 
         # All should be UTC
-        assert dt1.tzinfo.tzname(dt1) == "UTC"
-        assert dt2.tzinfo.tzname(dt2) == "UTC"
-        assert dt3.tzinfo.tzname(dt3) == "UTC"
-        assert dt4.tzinfo.tzname(dt4) == "UTC"
+        assert get_tzname(dt1) == "UTC"
+        assert get_tzname(dt2) == "UTC"
+        assert get_tzname(dt3) == "UTC"
+        assert get_tzname(dt4) == "UTC"
 
     def test_comparison_works_correctly(self):
         """Should be able to compare datetimes from different sources."""
@@ -369,7 +376,7 @@ class TestTimezones:
 
         assert result.hour == 18  # 14:30 EDT = 18:30 UTC
         assert result.minute == 30
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_est_conversion(self):
         """Should correctly convert EST (US Eastern Standard Time) to UTC."""
@@ -379,7 +386,7 @@ class TestTimezones:
 
         assert result.hour == 19  # 14:30 EST = 19:30 UTC
         assert result.minute == 30
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_london_bst_conversion(self):
         """Should correctly convert London BST (British Summer Time) to UTC."""
@@ -389,7 +396,7 @@ class TestTimezones:
 
         assert result.hour == 13  # 14:30 BST = 13:30 UTC
         assert result.minute == 30
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_london_gmt_conversion(self):
         """Should correctly convert London GMT to UTC."""
@@ -399,7 +406,7 @@ class TestTimezones:
 
         assert result.hour == 14  # 14:30 GMT = 14:30 UTC
         assert result.minute == 30
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_singapore_conversion(self):
         """Should correctly convert Singapore time (SGT) to UTC."""
@@ -409,7 +416,7 @@ class TestTimezones:
 
         assert result.hour == 6  # 14:30 SGT = 06:30 UTC
         assert result.minute == 30
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_tokyo_conversion(self):
         """Should correctly convert Tokyo time (JST) to UTC."""
@@ -419,7 +426,7 @@ class TestTimezones:
 
         assert result.hour == 5  # 14:30 JST = 05:30 UTC
         assert result.minute == 30
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_comparison_across_timezones(self):
         """Should correctly compare datetimes from different timezones."""
@@ -525,25 +532,25 @@ class TestGitTimestampHandling:
         assert result.month == 1
         assert result.day == 2
         assert result.hour == 12  # Converted to UTC
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     def test_git_format_variations(self):
         """Should handle various Git timestamp formats."""
         # Test ISO format with offset
         iso_offset = parse("2026-01-02T15:30:00+03:00")
         assert iso_offset.hour == 12  # 15:30+03:00 = 12:30 UTC
-        assert iso_offset.tzinfo.tzname(iso_offset) == "UTC"
+        assert get_tzname(iso_offset) == "UTC"
 
         # Test ISO format with Z
         iso_z = parse("2026-01-02T15:30:00Z")
         assert iso_z.hour == 15  # Already UTC
-        assert iso_z.tzinfo.tzname(iso_z) == "UTC"
+        assert get_tzname(iso_z) == "UTC"
 
         # Test ISO format with microseconds
         iso_micro = parse("2026-01-02T15:30:00.123456+03:00")
         assert iso_micro.hour == 12
         assert iso_micro.microsecond == 123456
-        assert iso_micro.tzinfo.tzname(iso_micro) == "UTC"
+        assert get_tzname(iso_micro) == "UTC"
 
     def test_git_commit_date_comparison(self):
         """Should correctly compare Git commit dates."""
@@ -596,7 +603,7 @@ class TestPropertyBased:
         result = ensure_utc(dt)
 
         assert is_aware(result)
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
 
     @given(st.integers(min_value=-12, max_value=14))
     def test_timezone_offset_handling(self, offset_hours):
@@ -608,7 +615,7 @@ class TestPropertyBased:
         result = ensure_utc(dt)
 
         # Should be converted to UTC
-        assert result.tzinfo.tzname(result) == "UTC"
+        assert get_tzname(result) == "UTC"
         # Hour should be adjusted by offset
         expected_hour = (12 - offset_hours) % 24
         assert result.hour == expected_hour
@@ -679,7 +686,7 @@ class TestPropertyBased:
         # Create times around DST transition
         times = []
         # US Spring forward 2026: March 8, 2:00 AM -> 3:00 AM
-        base = datetime(2026, 3, 8, 0, 0, 0, tzinfo=timezone.utc)
+        base = datetime(2026, 3, 8, 0, 0, 0, tzinfo=UTC)
 
         for hour in range(24):
             times.append(base + timedelta(hours=hour))
