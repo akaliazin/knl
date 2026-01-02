@@ -59,11 +59,11 @@ def _extract_documented_commands(docs_dir: Path) -> set[str]:
     documented = set()
 
     # Pattern to match command references in markdown
-    # Matches: ### `knl init`, `knl create`, ```bash\nknl list\n```
+    # Matches: ### `knl`, ### `knl init`, `knl create`, ```bash\nknl list\n```
     patterns = [
-        r"###?\s+`(knl[^`]+)`",  # Markdown headers with commands
-        r"^(knl\s+[a-z]+(?:\s+[a-z]+)*)",  # Commands in code blocks
-        r"`(knl\s+[a-z]+(?:\s+[a-z]+)*)`",  # Inline code with commands
+        r"###?\s+`(knl(?:\s+[a-z]+)*)`",  # Markdown headers with commands (including just 'knl')
+        r"^(knl(?:\s+[a-z]+(?:\s+[a-z]+)*)?)",  # Commands in code blocks
+        r"`(knl(?:\s+[a-z]+(?:\s+[a-z]+)*)?)`",  # Inline code with commands
     ]
 
     # Search all markdown files
@@ -345,6 +345,19 @@ def sync(
     if info.help_text:
         markdown_lines.append("\n## Overview\n")
         markdown_lines.append(f"{info.help_text}\n")
+
+    # Document the root knl command
+    markdown_lines.append("\n## Main Command\n")
+    markdown_lines.append("### `knl`\n")
+    if info.help_text:
+        markdown_lines.append(f"{info.help_text}\n")
+    markdown_lines.append("```bash")
+    markdown_lines.append("knl [COMMAND] [OPTIONS]")
+    markdown_lines.append("```\n")
+    markdown_lines.append("**Global Options:**\n")
+    markdown_lines.append("- `--version`, `-v` - Show version and exit")
+    markdown_lines.append("- `--help` - Show help message and exit\n")
+    markdown_lines.append("Run `knl COMMAND --help` for detailed help on any command.\n")
 
     # Add commands organized by category
     if info.subcommands:

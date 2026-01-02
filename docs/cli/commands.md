@@ -10,6 +10,24 @@ This documentation is auto-generated from CLI help text.
 Knowledge Retention Library - AI-powered development assistant.
 
 
+## Main Command
+
+### `knl`
+
+Knowledge Retention Library - AI-powered development assistant.
+
+```bash
+knl [COMMAND] [OPTIONS]
+```
+
+**Global Options:**
+
+- `--version`, `-v` - Show version and exit
+- `--help` - Show help message and exit
+
+Run `knl COMMAND --help` for detailed help on any command.
+
+
 ## Core Commands
 
 ### `knl init`
