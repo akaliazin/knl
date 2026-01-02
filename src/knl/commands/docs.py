@@ -228,3 +228,162 @@ def dump(
         console.print(f"[green]✓[/green] Wrote CLI help to {output}")
     else:
         console.print(json_str)
+
+
+def _format_command_markdown(info, prefix: str = "knl") -> str:
+    """
+    Format command info as markdown documentation.
+
+    Args:
+        info: CommandInfo to format
+        prefix: Command prefix for full path
+
+    Returns:
+        Markdown formatted documentation
+    """
+
+    lines = []
+    current_path = f"{prefix} {info.name}".strip() if info.name else prefix
+
+    # Skip the root "knl" command itself, start with subcommands
+    if info.name and not info.is_group:
+        # Command header
+        lines.append(f"### `{current_path}`\n")
+
+        # Description
+        if info.help_text:
+            # Clean up help text (remove extra whitespace)
+            help_text = " ".join(info.help_text.split())
+            lines.append(f"{help_text}\n")
+
+        # Usage example
+        lines.append("```bash")
+        lines.append(current_path)
+        lines.append("```\n")
+
+        # Options
+        if info.options:
+            # Filter out automatic options
+            user_options = [
+                opt
+                for opt in info.options
+                if opt.name
+                not in ["--help", "--install-completion", "--show-completion"]
+            ]
+
+            if user_options:
+                lines.append("**Options:**\n")
+                for opt in user_options:
+                    # Format option line
+                    opt_line = f"- `{opt.name}`"
+                    if opt.help_text:
+                        opt_line += f" - {opt.help_text}"
+                    if not opt.required and opt.default:
+                        opt_line += f" (default: `{opt.default}`)"
+                    lines.append(opt_line)
+                lines.append("")
+
+    # Process subcommands recursively
+    if info.subcommands:
+        for _subcmd_name, subcmd_info in sorted(info.subcommands.items()):
+            subcmd_md = _format_command_markdown(subcmd_info, current_path)
+            if subcmd_md:
+                lines.append(subcmd_md)
+
+    return "\n".join(lines)
+
+
+@app.command()
+def sync(
+    verify_only: Annotated[
+        bool,
+        typer.Option("--verify-only", help="Check sync without updating files"),
+    ] = False,
+    output: Annotated[
+        Path | None,
+        typer.Option("--output", "-o", help="Output file (default: docs/cli/commands.md)"),
+    ] = None,
+) -> None:
+    """Extract CLI help and sync to documentation."""
+    # Import here to avoid circular dependency
+    from ..cli import app as main_app
+
+    # Find docs directory
+    docs_dir = _find_docs_dir()
+    if not docs_dir:
+        console.print("[red]Error:[/red] Could not find docs/ directory")
+        raise typer.Exit(1)
+
+    # Determine output file
+    if output is None:
+        output = docs_dir / "cli" / "commands.md"
+
+    # Extract CLI structure
+    console.print("[dim]Extracting CLI help information...[/dim]")
+    info = extract_typer_app_info(main_app, "knl")
+
+    # Generate markdown
+    console.print("[dim]Generating markdown documentation...[/dim]")
+
+    # Build the documentation content
+    markdown_lines = [
+        "# CLI Commands Reference\n",
+        "This documentation is auto-generated from CLI help text.\n",
+        "**Do not edit manually** - run `knl docs sync` to update.\n",
+    ]
+
+    # Add commands organized by category
+    if info.subcommands:
+        # Group commands by category
+        categories = {
+            "Core Commands": ["init"],
+            "Task Management": ["create", "list", "show", "delete", "task"],
+            "Configuration": ["config"],
+            "Knowledge Management": ["crumb"],
+            "Documentation": ["docs"],
+        }
+
+        for category, cmd_names in categories.items():
+            category_cmds = [
+                (name, info.subcommands[name])
+                for name in cmd_names
+                if name in info.subcommands
+            ]
+
+            if category_cmds:
+                markdown_lines.append(f"\n## {category}\n")
+                for _cmd_name, cmd_info in category_cmds:
+                    cmd_md = _format_command_markdown(cmd_info, "knl")
+                    if cmd_md:
+                        markdown_lines.append(cmd_md)
+
+    markdown_content = "\n".join(markdown_lines)
+
+    # Check if content changed
+    content_changed = True
+    if output.exists():
+        existing_content = output.read_text()
+        content_changed = existing_content != markdown_content
+
+    if verify_only:
+        if content_changed:
+            console.print(
+                "[yellow]Warning:[/yellow] Documentation is out of sync with CLI"
+            )
+            console.print(f"  Run [cyan]knl docs sync[/cyan] to update {output}")
+            raise typer.Exit(1)
+        else:
+            console.print("[green]✓[/green] Documentation is in sync with CLI")
+        return
+
+    if not content_changed:
+        console.print(f"[dim]No changes needed - {output} is already up to date[/dim]")
+        return
+
+    # Write the file
+    output.parent.mkdir(parents=True, exist_ok=True)
+    output.write_text(markdown_content)
+
+    console.print("\n[green]✓[/green] Updated CLI documentation")
+    console.print(f"  File: [cyan]{output}[/cyan]")
+    console.print(f"  Commands documented: [cyan]{len(info.subcommands)}[/cyan]\n")
