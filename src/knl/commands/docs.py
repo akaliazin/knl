@@ -4,10 +4,11 @@ import json
 import re
 from pathlib import Path
 
+from typing import Annotated
+
 import typer
 from rich.console import Console
 from rich.table import Table
-from typing_extensions import Annotated
 
 from ..utils.cli_help import (
     extract_typer_app_info,
@@ -150,7 +151,7 @@ def check(
         return
 
     # Display results
-    console.print(f"\n[bold]Documentation Coverage Report[/bold]\n")
+    console.print("\n[bold]Documentation Coverage Report[/bold]\n")
     console.print(f"Documentation directory: [cyan]{docs_dir}[/cyan]")
     console.print(
         f"Coverage: [{'green' if coverage_pct >= 80 else 'yellow' if coverage_pct >= 50 else 'red'}]"
