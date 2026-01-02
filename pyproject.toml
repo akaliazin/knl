@@ -55,6 +55,7 @@ dependencies = [
 
     # CLI utilities
     "plumbum>=1.9.0",
+    "pytz>=2025.2",
 ]
 
 [project.optional-dependencies]
