@@ -706,6 +706,10 @@ verbose = false
 
 def main():
     """Main installer function."""
+    # Handle 'help' argument (user-friendly alias for --help)
+    if len(sys.argv) > 1 and sys.argv[1] in ('help', '-help'):
+        sys.argv[1] = '--help'
+
     # Parse arguments
     parser = argparse.ArgumentParser(
         description='Install KNL (Knowledge Retention Library)'
