@@ -230,13 +230,14 @@ def dump(
         console.print(json_str)
 
 
-def _format_command_markdown(info, prefix: str = "knl") -> str:
+def _format_command_markdown(info, prefix: str = "knl", include_group_header: bool = False) -> str:
     """
     Format command info as markdown documentation.
 
     Args:
         info: CommandInfo to format
         prefix: Command prefix for full path
+        include_group_header: Whether to include header for command groups
 
     Returns:
         Markdown formatted documentation
@@ -245,7 +246,15 @@ def _format_command_markdown(info, prefix: str = "knl") -> str:
     lines = []
     current_path = f"{prefix} {info.name}".strip() if info.name else prefix
 
-    # Skip the root "knl" command itself, start with subcommands
+    # Handle command groups (like 'knl task', 'knl config', etc.)
+    if info.name and info.is_group and include_group_header:
+        lines.append(f"#### `{current_path}` - Command Group\n")
+        if info.help_text:
+            help_text = " ".join(info.help_text.split())
+            lines.append(f"{help_text}\n")
+        lines.append("See subcommands below.\n")
+
+    # Handle individual commands
     if info.name and not info.is_group:
         # Command header
         lines.append(f"### `{current_path}`\n")
@@ -286,7 +295,7 @@ def _format_command_markdown(info, prefix: str = "knl") -> str:
     # Process subcommands recursively
     if info.subcommands:
         for _subcmd_name, subcmd_info in sorted(info.subcommands.items()):
-            subcmd_md = _format_command_markdown(subcmd_info, current_path)
+            subcmd_md = _format_command_markdown(subcmd_info, current_path, include_group_header=True)
             if subcmd_md:
                 lines.append(subcmd_md)
 
@@ -332,6 +341,11 @@ def sync(
         "**Do not edit manually** - run `knl docs sync` to update.\n",
     ]
 
+    # Add main KNL overview
+    if info.help_text:
+        markdown_lines.append("\n## Overview\n")
+        markdown_lines.append(f"{info.help_text}\n")
+
     # Add commands organized by category
     if info.subcommands:
         # Group commands by category
@@ -353,7 +367,8 @@ def sync(
             if category_cmds:
                 markdown_lines.append(f"\n## {category}\n")
                 for _cmd_name, cmd_info in category_cmds:
-                    cmd_md = _format_command_markdown(cmd_info, "knl")
+                    # Include group headers for command groups
+                    cmd_md = _format_command_markdown(cmd_info, "knl", include_group_header=True)
                     if cmd_md:
                         markdown_lines.append(cmd_md)
 

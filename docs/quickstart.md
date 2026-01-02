@@ -217,7 +217,7 @@ knl show PROJ-123
 knl show PROJ-456
 
 # Archive old tasks
-knl task archive PROJ-123
+knl task update PROJ-123 --status archived
 ```
 
 ## Configuration

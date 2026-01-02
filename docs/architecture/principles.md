@@ -402,11 +402,10 @@ curl -sSL https://raw.githubusercontent.com/akaliazin/knl/main/install.sh | sh -
 # Install from specific branch/tag
 curl -sSL https://raw.githubusercontent.com/akaliazin/knl/main/install.sh | sh -s -- --ref develop
 
-# Upgrade existing installation
-knl upgrade [--version 0.3.0]
-
 # Show installed version
 knl --version
+
+# Note: Upgrade command planned for future release
 ```
 
 **Repository:**

@@ -267,7 +267,7 @@ Store generated files in the artifacts directory:
 
 ```bash
 # Mark as archived (keeps data)
-knl task archive PROJ-123
+knl task update PROJ-123 --status archived
 ```
 
 ### Hard Delete

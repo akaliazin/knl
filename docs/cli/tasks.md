@@ -6,7 +6,7 @@ Detailed reference for task management commands.
 
 ## Creating Tasks
 
-### `knl create <task-id>`
+### `knl create`
 
 Create a new task with the specified ID.
 
@@ -67,7 +67,7 @@ knl list --format json
 
 ## Viewing Tasks
 
-### `knl show <task-id>`
+### `knl show`
 
 Show detailed information about a task.
 
@@ -84,7 +84,7 @@ knl show "#456"
 
 ## Updating Tasks
 
-### `knl task update <task-id>`
+### `knl task update`
 
 Update task metadata or status.
 
@@ -112,7 +112,7 @@ knl task update PROJ-123 --status in_review --title "Ready for review"
 
 ## Deleting Tasks
 
-### `knl delete <task-id>`
+### `knl delete`
 
 Delete a task.
 

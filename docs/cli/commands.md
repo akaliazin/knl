@@ -5,6 +5,11 @@ This documentation is auto-generated from CLI help text.
 **Do not edit manually** - run `knl docs sync` to update.
 
 
+## Overview
+
+Knowledge Retention Library - AI-powered development assistant.
+
+
 ## Core Commands
 
 ### `knl init`
@@ -76,6 +81,12 @@ knl delete
 - `task_id` - Task ID to delete
 - `--force` - Skip confirmation
 
+#### `knl task` - Command Group
+
+Manage development tasks
+
+See subcommands below.
+
 ### `knl task create`
 
 Create a new task.
@@ -145,6 +156,12 @@ knl task update
 
 ## Configuration
 
+#### `knl config` - Command Group
+
+Manage configuration
+
+See subcommands below.
+
 ### `knl config edit`
 
 Open configuration file in editor.
@@ -199,6 +216,12 @@ knl config set
 
 
 ## Knowledge Management
+
+#### `knl crumb` - Command Group
+
+Browse and manage knowledge crumbs
+
+See subcommands below.
 
 ### `knl crumb categories`
 
@@ -284,6 +307,12 @@ knl crumb tags
 
 
 ## Documentation
+
+#### `knl docs` - Command Group
+
+Documentation checking and synchronization
+
+See subcommands below.
 
 ### `knl docs check`
 
