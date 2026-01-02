@@ -4,7 +4,7 @@ import re
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -48,11 +48,11 @@ class TaskMetadata(BaseModel):
     # Timestamps
     created_at: datetime = Field(default_factory=dt.now)
     updated_at: datetime = Field(default_factory=dt.now)
-    completed_at: Optional[datetime] = None
+    completed_at: datetime | None = None
 
     # External links
-    external_url: Optional[str] = None
-    branch_name: Optional[str] = None
+    external_url: str | None = None
+    branch_name: str | None = None
 
     # Tags and labels
     tags: list[str] = Field(default_factory=list)

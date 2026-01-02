@@ -1,9 +1,10 @@
 """Configuration management for KNL."""
 
+from pathlib import Path
+from typing import Any
+
 import tomli
 import tomli_w
-from pathlib import Path
-from typing import Any, Optional
 
 from ..models.config import GlobalConfig, LocalConfig
 from .paths import KnlPaths
@@ -47,7 +48,7 @@ class ConfigManager:
             tomli_w.dump(data, f)
 
     @staticmethod
-    def load_local_config(repo_root: Optional[Path] = None) -> Optional[LocalConfig]:
+    def load_local_config(repo_root: Path | None = None) -> LocalConfig | None:
         """
         Load local repository configuration.
 
@@ -71,7 +72,7 @@ class ConfigManager:
         return LocalConfig(**data)
 
     @staticmethod
-    def save_local_config(config: LocalConfig, repo_root: Optional[Path] = None) -> None:
+    def save_local_config(config: LocalConfig, repo_root: Path | None = None) -> None:
         """
         Save local repository configuration.
 
@@ -90,8 +91,8 @@ class ConfigManager:
 
     @staticmethod
     def get_config_value(
-        key: str, repo_root: Optional[Path] = None
-    ) -> Optional[Any]:
+        key: str, repo_root: Path | None = None
+    ) -> Any | None:
         """
         Get configuration value with local override.
 
@@ -127,7 +128,7 @@ class ConfigManager:
 
     @staticmethod
     def set_config_value(
-        key: str, value: Any, local: bool = False, repo_root: Optional[Path] = None
+        key: str, value: Any, local: bool = False, repo_root: Path | None = None
     ) -> None:
         """
         Set configuration value.

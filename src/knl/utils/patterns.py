@@ -1,8 +1,7 @@
 """Pattern matching utilities for KNL."""
 
 import re
-from typing import Pattern
-
+from re import Pattern
 
 # Task ID patterns
 JIRA_PATTERN: Pattern[str] = re.compile(r"^[A-Z][A-Z0-9]+-\d+$")

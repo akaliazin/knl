@@ -1,9 +1,9 @@
 """Configuration management commands."""
 
+from typing import Annotated
+
 import typer
 from rich.console import Console
-from rich.table import Table
-from typing_extensions import Annotated
 
 from ..core.config import ConfigManager
 from ..core.paths import KnlPaths
@@ -100,8 +100,8 @@ def edit_config(
     ] = False,
 ) -> None:
     """Open configuration file in editor."""
-    import subprocess
     import os
+    import subprocess
 
     if local:
         if not KnlPaths.is_knl_repo():

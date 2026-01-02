@@ -5,9 +5,10 @@ datetimes are timezone-aware and use UTC by default. Uses pendulum internally
 but returns standard datetime objects for type compatibility.
 """
 
-import pendulum
 from datetime import datetime
 from typing import Any
+
+import pendulum
 
 
 def now() -> datetime:

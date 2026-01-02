@@ -1,17 +1,16 @@
 """Task management commands."""
 
 import json
-import typer
-from datetime import datetime
 from pathlib import Path
+from typing import Annotated
+
+import typer
 from rich.console import Console
 from rich.prompt import Confirm
 from rich.table import Table
-from typing_extensions import Annotated
 
-from ..core.config import ConfigManager
 from ..core.paths import KnlPaths
-from ..models.task import Task, TaskIDType, TaskMetadata, TaskStatus
+from ..models.task import Task, TaskMetadata, TaskStatus
 from ..utils import dt
 
 app = typer.Typer()
@@ -294,7 +293,7 @@ def update(
                 metadata.completed_at = dt.now()
         except ValueError:
             console.print(f"[red]Error:[/red] Invalid status: {status}")
-            raise typer.Exit(1)
+            raise typer.Exit(1) from None
 
     if title:
         metadata.title = title

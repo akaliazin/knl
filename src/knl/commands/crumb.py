@@ -323,7 +323,7 @@ def _display_table(crumbs: list[Crumb]):
         )
 
     console.print(table)
-    console.print(f"\n[dim]Use 'knl crumb show <category>/<filename>' to view a crumb[/dim]")
+    console.print("\n[dim]Use 'knl crumb show <category>/<filename>' to view a crumb[/dim]")
 
 
 def _display_compact(crumbs: list[Crumb]):

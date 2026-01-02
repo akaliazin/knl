@@ -2,7 +2,6 @@
 
 import os
 from pathlib import Path
-from typing import Optional
 
 
 class KnlPaths:
@@ -33,7 +32,7 @@ class KnlPaths:
         cls.GLOBAL_TEMPLATES_DIR.mkdir(parents=True, exist_ok=True)
 
     @classmethod
-    def ensure_local_dirs(cls, repo_root: Optional[Path] = None) -> None:
+    def ensure_local_dirs(cls, repo_root: Path | None = None) -> None:
         """
         Ensure local knowledge directories exist.
 
@@ -51,7 +50,7 @@ class KnlPaths:
         (knowledge_dir / "standards").mkdir(exist_ok=True)
 
     @classmethod
-    def find_repo_root(cls, start_path: Optional[Path] = None) -> Optional[Path]:
+    def find_repo_root(cls, start_path: Path | None = None) -> Path | None:
         """
         Find repository root by looking for .knowledge directory.
 
@@ -72,7 +71,7 @@ class KnlPaths:
         return None
 
     @classmethod
-    def is_knl_repo(cls, path: Optional[Path] = None) -> bool:
+    def is_knl_repo(cls, path: Path | None = None) -> bool:
         """
         Check if path is in a KNL-initialized repository.
 
@@ -85,7 +84,7 @@ class KnlPaths:
         return cls.find_repo_root(path) is not None
 
     @classmethod
-    def get_task_dir(cls, task_id: str, repo_root: Optional[Path] = None) -> Path:
+    def get_task_dir(cls, task_id: str, repo_root: Path | None = None) -> Path:
         """
         Get task directory path.
 

@@ -1,6 +1,5 @@
 """CLI help text extraction utilities for documentation automation."""
 
-import inspect
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -47,7 +46,7 @@ class CommandInfo:
     options: list[CommandOption] = field(default_factory=list)
     """List of command options/arguments"""
 
-    subcommands: dict[str, "CommandInfo"] = field(default_factory=dict)
+    subcommands: dict[str, CommandInfo] = field(default_factory=dict)
     """Nested subcommands if this is a group"""
 
     is_group: bool = False

@@ -1,8 +1,9 @@
 """Main CLI entry point for KNL."""
 
+from typing import Annotated
+
 import typer
 from rich.console import Console
-from typing_extensions import Annotated
 
 from . import __version__
 from .commands import config as config_cmd

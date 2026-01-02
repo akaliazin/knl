@@ -6,8 +6,8 @@ from pathlib import Path
 
 from ..core.paths import KnlPaths
 from ..models.task import Task, TaskMetadata
-from ..utils.git import Commit
 from ..utils import dt
+from ..utils.git import Commit
 
 
 def get_task_creation_time(task_id: str, repo_root: Path | None = None) -> datetime | None:

@@ -4,12 +4,11 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
 
 from . import dt
 
 
-def get_current_branch() -> Optional[str]:
+def get_current_branch() -> str | None:
     """
     Get current git branch name.
 
@@ -28,7 +27,7 @@ def get_current_branch() -> Optional[str]:
         return None
 
 
-def get_repo_root() -> Optional[Path]:
+def get_repo_root() -> Path | None:
     """
     Get git repository root directory.
 
@@ -52,7 +51,7 @@ def is_git_repo() -> bool:
     return get_repo_root() is not None
 
 
-def get_remote_url(remote: str = "origin") -> Optional[str]:
+def get_remote_url(remote: str = "origin") -> str | None:
     """
     Get git remote URL.
 
@@ -74,7 +73,7 @@ def get_remote_url(remote: str = "origin") -> Optional[str]:
         return None
 
 
-def extract_github_repo_from_url(url: str) -> Optional[str]:
+def extract_github_repo_from_url(url: str) -> str | None:
     """
     Extract GitHub repo (owner/repo) from git URL.
 
@@ -120,7 +119,7 @@ class Commit:
         return self.subject
 
 
-def get_commits_since(ref: str, paths: Optional[list[str]] = None) -> list[Commit]:
+def get_commits_since(ref: str, paths: list[str] | None = None) -> list[Commit]:
     """
     Get commits since a git ref.
 
@@ -200,7 +199,7 @@ def get_commits_since(ref: str, paths: Optional[list[str]] = None) -> list[Commi
         raise
 
 
-def get_diff_since(ref: str, paths: Optional[list[str]] = None) -> str:
+def get_diff_since(ref: str, paths: list[str] | None = None) -> str:
     """
     Get unified diff since a git ref.
 
@@ -233,7 +232,7 @@ def get_diff_since(ref: str, paths: Optional[list[str]] = None) -> str:
         raise
 
 
-def get_last_release_tag() -> Optional[str]:
+def get_last_release_tag() -> str | None:
     """
     Get the most recent release tag.
 
@@ -262,7 +261,7 @@ def get_last_release_tag() -> Optional[str]:
         return None
 
 
-def get_changed_files(ref: str, paths: Optional[list[str]] = None) -> list[Path]:
+def get_changed_files(ref: str, paths: list[str] | None = None) -> list[Path]:
     """
     Get list of files changed since a git ref.
 

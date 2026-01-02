@@ -1,10 +1,11 @@
 """Initialize KNL in a repository."""
 
-import typer
 from pathlib import Path
+from typing import Annotated
+
+import typer
 from rich.console import Console
-from rich.prompt import Confirm, Prompt
-from typing_extensions import Annotated
+from rich.prompt import Prompt
 
 from ..core.config import ConfigManager
 from ..core.paths import KnlPaths
@@ -112,7 +113,7 @@ def main(
     console.print("\n[bold green]✓[/bold green] KNL initialized successfully!\n")
     console.print(f"  Task format: [cyan]{id_format.value}[/cyan]")
     console.print(f"  Project: [cyan]{project}[/cyan]")
-    console.print(f"  Knowledge directory: [cyan].knowledge/[/cyan]\n")
+    console.print("  Knowledge directory: [cyan].knowledge/[/cyan]\n")
     console.print("Next steps:")
     console.print("  • Create a task: [cyan]knl create {TASK-ID}[/cyan]")
     console.print("  • List tasks: [cyan]knl list[/cyan]")

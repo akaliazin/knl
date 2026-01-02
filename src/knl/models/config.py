@@ -2,7 +2,6 @@
 
 from enum import Enum
 from pathlib import Path
-from typing import Optional
 
 from pydantic import BaseModel, Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -50,7 +49,7 @@ class TaskConfig(BaseModel):
     jira_project: str = ""
     github_repo: str = ""
     auto_detect_from_branch: bool = True
-    custom_pattern: Optional[str] = None
+    custom_pattern: str | None = None
 
 
 class GlobalConfig(BaseSettings):
@@ -99,13 +98,13 @@ class LocalConfig(BaseSettings):
     task: TaskConfig = Field(default_factory=TaskConfig)
 
     # Local integrations (override global)
-    integrations_jira: Optional[JiraIntegration] = Field(
+    integrations_jira: JiraIntegration | None = Field(
         default=None, alias="integrations.jira"
     )
-    integrations_github: Optional[GitHubIntegration] = Field(
+    integrations_github: GitHubIntegration | None = Field(
         default=None, alias="integrations.github"
     )
-    integrations_ai: Optional[AIIntegration] = Field(
+    integrations_ai: AIIntegration | None = Field(
         default=None, alias="integrations.ai"
     )
 
