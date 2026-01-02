@@ -7,6 +7,7 @@ from typing_extensions import Annotated
 from . import __version__
 from .commands import config as config_cmd
 from .commands import crumb as crumb_cmd
+from .commands import docs as docs_cmd
 from .commands import init as init_cmd
 from .commands import task as task_cmd
 
@@ -52,6 +53,7 @@ app.command(name="init", help="Initialize KNL in a repository")(init_cmd.main)
 app.add_typer(task_cmd.app, name="task", help="Manage development tasks")
 app.add_typer(config_cmd.app, name="config", help="Manage configuration")
 app.add_typer(crumb_cmd.app, name="crumb", help="Browse and manage knowledge crumbs")
+app.add_typer(docs_cmd.app, name="docs", help="Documentation checking and synchronization")
 
 
 # Convenience commands at root level
