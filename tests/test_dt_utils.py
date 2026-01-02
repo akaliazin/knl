@@ -3,6 +3,8 @@
 import pytest
 from datetime import datetime, timezone, timedelta
 import pendulum
+from hypothesis import given, strategies as st, assume
+from hypothesis.extra.pytz import timezones
 
 from src.knl.utils.dt import (
     now,
@@ -355,3 +357,412 @@ class TestIntegration:
 
         dt3 = parse("2026-01-02T16:30:00Z")
         assert dt3 > dt1
+
+class TestTimezones:
+    """Tests for various timezone handling."""
+
+    def test_edt_conversion(self):
+        """Should correctly convert EDT (US Eastern Daylight Time) to UTC."""
+        # EDT is UTC-4
+        edt_str = "2026-06-15T14:30:00-04:00"
+        result = parse(edt_str)
+
+        assert result.hour == 18  # 14:30 EDT = 18:30 UTC
+        assert result.minute == 30
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_est_conversion(self):
+        """Should correctly convert EST (US Eastern Standard Time) to UTC."""
+        # EST is UTC-5
+        est_str = "2026-01-15T14:30:00-05:00"
+        result = parse(est_str)
+
+        assert result.hour == 19  # 14:30 EST = 19:30 UTC
+        assert result.minute == 30
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_london_bst_conversion(self):
+        """Should correctly convert London BST (British Summer Time) to UTC."""
+        # BST is UTC+1
+        bst_str = "2026-06-15T14:30:00+01:00"
+        result = parse(bst_str)
+
+        assert result.hour == 13  # 14:30 BST = 13:30 UTC
+        assert result.minute == 30
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_london_gmt_conversion(self):
+        """Should correctly convert London GMT to UTC."""
+        # GMT is UTC+0
+        gmt_str = "2026-01-15T14:30:00+00:00"
+        result = parse(gmt_str)
+
+        assert result.hour == 14  # 14:30 GMT = 14:30 UTC
+        assert result.minute == 30
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_singapore_conversion(self):
+        """Should correctly convert Singapore time (SGT) to UTC."""
+        # SGT is UTC+8
+        sgt_str = "2026-01-15T14:30:00+08:00"
+        result = parse(sgt_str)
+
+        assert result.hour == 6  # 14:30 SGT = 06:30 UTC
+        assert result.minute == 30
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_tokyo_conversion(self):
+        """Should correctly convert Tokyo time (JST) to UTC."""
+        # JST is UTC+9
+        jst_str = "2026-01-15T14:30:00+09:00"
+        result = parse(jst_str)
+
+        assert result.hour == 5  # 14:30 JST = 05:30 UTC
+        assert result.minute == 30
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_comparison_across_timezones(self):
+        """Should correctly compare datetimes from different timezones."""
+        edt = parse("2026-06-15T10:00:00-04:00")  # 14:00 UTC
+        london = parse("2026-06-15T15:00:00+01:00")  # 14:00 UTC
+        singapore = parse("2026-06-15T22:00:00+08:00")  # 14:00 UTC
+        tokyo = parse("2026-06-15T23:00:00+09:00")  # 14:00 UTC
+
+        # All should be equal when converted to UTC
+        assert edt == london == singapore == tokyo
+
+    def test_timestamp_consistency_across_timezones(self):
+        """Timestamps should be same regardless of source timezone."""
+        edt = parse("2026-06-15T10:00:00-04:00")
+        singapore = parse("2026-06-15T22:00:00+08:00")
+
+        ts_edt = to_timestamp(edt)
+        ts_singapore = to_timestamp(singapore)
+
+        assert ts_edt == ts_singapore
+
+
+class TestDSTTransitions:
+    """Tests for daylight saving time transitions."""
+
+    def test_us_spring_forward(self):
+        """Should handle US spring DST transition (2nd Sunday in March)."""
+        # In 2026, DST starts March 8 at 2:00 AM (spring forward to 3:00 AM)
+        before_dst = parse("2026-03-08T01:59:00-05:00")  # EST
+        after_dst = parse("2026-03-08T03:00:00-04:00")   # EDT
+
+        # Should be only 1 second apart in UTC
+        diff = (after_dst - before_dst).total_seconds()
+        assert diff == 61  # 1 second difference (01:59 -> 03:00)
+
+    def test_us_fall_back(self):
+        """Should handle US fall DST transition (1st Sunday in November)."""
+        # In 2026, DST ends November 1 at 2:00 AM (fall back to 1:00 AM)
+        before_dst = parse("2026-11-01T01:59:00-04:00")  # EDT
+        after_dst = parse("2026-11-01T01:00:00-05:00")   # EST
+
+        # They should be 59 minutes apart in UTC
+        diff_seconds = (after_dst - before_dst).total_seconds()
+        assert diff_seconds == -3540  # -59 minutes
+
+    def test_eu_spring_forward(self):
+        """Should handle EU spring DST transition (last Sunday in March)."""
+        # In 2026, EU DST starts March 29 at 1:00 AM UTC (spring forward)
+        before_dst = parse("2026-03-29T00:59:00+00:00")  # GMT
+        after_dst = parse("2026-03-29T02:00:00+01:00")   # BST
+
+        # Should be only 1 second apart in UTC
+        diff = (after_dst - before_dst).total_seconds()
+        assert diff == 61  # 1 second
+
+    def test_eu_fall_back(self):
+        """Should handle EU fall DST transition (last Sunday in October)."""
+        # In 2026, EU DST ends October 25 at 1:00 AM UTC (fall back)
+        before_dst = parse("2026-10-25T00:59:00+01:00")  # BST
+        after_dst = parse("2026-10-25T01:00:00+00:00")   # GMT
+
+        # They should be 1 minute apart
+        diff_seconds = (after_dst - before_dst).total_seconds()
+        assert diff_seconds == 61  # 1 minute and 1 second
+
+    def test_dst_aware_comparison(self):
+        """Should correctly compare times around DST transitions."""
+        # Times during different DST periods but same clock time
+        summer = parse("2026-06-15T12:00:00-04:00")  # EDT
+        winter = parse("2026-12-15T12:00:00-05:00")  # EST
+
+        # Summer time should be 1 hour earlier in UTC
+        assert summer.hour == 16  # 12:00 EDT = 16:00 UTC
+        assert winter.hour == 17  # 12:00 EST = 17:00 UTC
+        assert winter > summer
+
+    def test_timestamp_across_dst_boundary(self):
+        """Timestamps should be monotonic across DST changes."""
+        times = [
+            parse("2026-03-08T01:00:00-05:00"),  # Before DST
+            parse("2026-03-08T01:30:00-05:00"),
+            parse("2026-03-08T03:00:00-04:00"),  # After DST (skipped 2:00-3:00)
+            parse("2026-03-08T03:30:00-04:00"),
+        ]
+
+        timestamps = [to_timestamp(t) for t in times]
+
+        # Timestamps should be strictly increasing
+        for i in range(len(timestamps) - 1):
+            assert timestamps[i] < timestamps[i + 1]
+
+
+class TestGitTimestampHandling:
+    """Tests for handling timestamps as Git produces them."""
+
+    def test_git_iso_format_with_offset(self):
+        """Should parse Git's ISO format with timezone offset."""
+        # Git format: 2026-01-02T15:30:00+03:00
+        git_timestamp = "2026-01-02T15:30:00+03:00"
+        result = parse(git_timestamp)
+
+        assert result.year == 2026
+        assert result.month == 1
+        assert result.day == 2
+        assert result.hour == 12  # Converted to UTC
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_git_format_variations(self):
+        """Should handle various Git timestamp formats."""
+        formats = [
+            "2026-01-02T15:30:00+03:00",       # ISO with offset
+            "2026-01-02T15:30:00Z",            # ISO with Z
+            "2026-01-02T15:30:00.123456+03:00", # With microseconds
+            "2026-01-02 15:30:00 +0300",       # Space-separated
+        ]
+
+        results = [parse(fmt) for fmt in formats]
+
+        # First two should have same UTC time
+        assert results[0].hour == 12
+        assert results[1].hour == 15
+
+        # All should be timezone-aware UTC
+        for result in results:
+            assert result.tzinfo.tzname(result) == "UTC"
+
+    def test_git_commit_date_comparison(self):
+        """Should correctly compare Git commit dates."""
+        commit1 = parse("2026-01-02T10:00:00-05:00")  # EST
+        commit2 = parse("2026-01-02T16:00:00+01:00")  # CET
+        commit3 = parse("2026-01-02T15:00:00Z")       # UTC
+
+        # All are same time in UTC
+        assert commit1 == commit2 == commit3
+
+    def test_git_timestamp_to_unix_timestamp(self):
+        """Should convert Git timestamps to Unix timestamps correctly."""
+        git_ts = "2026-01-02T00:00:00Z"
+        dt = parse(git_ts)
+        unix_ts = to_timestamp(dt)
+
+        # Should be valid Unix timestamp
+        assert unix_ts > 0
+        assert unix_ts == 1767312000.0
+
+    def test_git_author_vs_committer_timezone(self):
+        """Should handle different timezones for author vs committer."""
+        author_tz = parse("2026-01-02T15:00:00+09:00")    # Tokyo
+        committer_tz = parse("2026-01-02T01:00:00-05:00") # EST
+
+        # Both should represent same UTC time
+        assert author_tz == committer_tz
+        assert author_tz.hour == 6  # 15:00 JST = 06:00 UTC
+        assert committer_tz.hour == 6  # 01:00 EST = 06:00 UTC
+
+
+class TestPropertyBased:
+    """Property-based tests using Hypothesis."""
+
+    @given(st.integers(min_value=0, max_value=2**31 - 1))
+    def test_timestamp_roundtrip(self, unix_timestamp):
+        """Any valid Unix timestamp should roundtrip correctly."""
+        dt = from_timestamp(unix_timestamp)
+        ts = to_timestamp(dt)
+
+        # Should roundtrip (allow small floating point difference)
+        assert abs(ts - unix_timestamp) < 0.001
+
+    @given(st.datetimes(
+        min_value=datetime(2000, 1, 1, tzinfo=timezone.utc),
+        max_value=datetime(2100, 1, 1, tzinfo=timezone.utc)
+    ))
+    def test_datetime_always_aware(self, dt):
+        """Any datetime processed should become timezone-aware."""
+        result = ensure_utc(dt)
+
+        assert is_aware(result)
+        assert result.tzinfo.tzname(result) == "UTC"
+
+    @given(st.integers(min_value=-12, max_value=14))
+    def test_timezone_offset_handling(self, offset_hours):
+        """Should handle any valid timezone offset."""
+        # Create a datetime with the given offset
+        tz = timezone(timedelta(hours=offset_hours))
+        dt = datetime(2026, 1, 15, 12, 0, 0, tzinfo=tz)
+
+        result = ensure_utc(dt)
+
+        # Should be converted to UTC
+        assert result.tzinfo.tzname(result) == "UTC"
+        # Hour should be adjusted by offset
+        expected_hour = (12 - offset_hours) % 24
+        assert result.hour == expected_hour
+
+    @given(
+        st.datetimes(
+            min_value=datetime(2000, 1, 1),
+            max_value=datetime(2100, 1, 1)
+        ),
+        st.datetimes(
+            min_value=datetime(2000, 1, 1),
+            max_value=datetime(2100, 1, 1)
+        )
+    )
+    def test_comparison_transitivity(self, dt1, dt2):
+        """Datetime comparison should be transitive."""
+        # Convert both to UTC
+        utc1 = ensure_utc(dt1)
+        utc2 = ensure_utc(dt2)
+
+        # Comparison should work
+        if utc1 < utc2:
+            assert not (utc1 > utc2)
+            assert not (utc1 == utc2)
+        elif utc1 > utc2:
+            assert not (utc1 < utc2)
+            assert not (utc1 == utc2)
+        else:
+            assert utc1 == utc2
+
+    @given(st.text(min_size=1, max_size=100))
+    def test_parse_invalid_strings_fail_gracefully(self, random_string):
+        """Parsing invalid strings should raise ValueError, not crash."""
+        # Skip strings that might actually be valid dates
+        assume(not any(char.isdigit() for char in random_string))
+
+        with pytest.raises(ValueError):
+            parse(random_string)
+
+    @given(st.integers(min_value=-2**31, max_value=2**31 - 1))
+    def test_any_integer_timestamp_parseable(self, timestamp):
+        """Any reasonable Unix timestamp should be parseable."""
+        # Skip timestamps that would create invalid dates
+        assume(timestamp >= 0)
+        assume(timestamp < 2**31)  # Year 2038 problem
+
+        dt = from_timestamp(timestamp)
+
+        # Should be timezone-aware
+        assert is_aware(dt)
+        # Should be in valid range
+        assert dt.year >= 1970
+        assert dt.year < 2100
+
+    @given(
+        st.datetimes(
+            min_value=datetime(2000, 1, 1, tzinfo=timezone.utc),
+            max_value=datetime(2100, 1, 1, tzinfo=timezone.utc)
+        )
+    )
+    def test_iso_roundtrip(self, dt):
+        """Any datetime should survive ISO string roundtrip."""
+        iso = to_iso(dt)
+        parsed = parse(iso)
+
+        # Should be same time (within a second due to precision)
+        diff = abs((parsed - dt).total_seconds())
+        assert diff < 1.0
+
+    def test_dst_transitions_monotonic(self):
+        """Timestamps should be monotonic even across DST."""
+        # Create times around DST transition
+        times = []
+        # US Spring forward 2026: March 8, 2:00 AM -> 3:00 AM
+        base = datetime(2026, 3, 8, 0, 0, 0, tzinfo=timezone.utc)
+
+        for hour in range(24):
+            times.append(base + timedelta(hours=hour))
+
+        timestamps = [to_timestamp(t) for t in times]
+
+        # All timestamps should be strictly increasing
+        for i in range(len(timestamps) - 1):
+            assert timestamps[i] < timestamps[i + 1]
+
+
+class TestEdgeCases:
+    """Tests for edge cases and corner scenarios."""
+
+    def test_midnight_utc(self):
+        """Should handle midnight UTC correctly."""
+        midnight = parse("2026-01-01T00:00:00Z")
+
+        assert midnight.hour == 0
+        assert midnight.minute == 0
+        assert midnight.second == 0
+
+    def test_leap_second_handling(self):
+        """Should handle dates near leap seconds gracefully."""
+        # June 30 and December 31 are when leap seconds can occur
+        near_leap = parse("2025-12-31T23:59:59Z")
+
+        assert near_leap.month == 12
+        assert near_leap.day == 31
+        assert is_aware(near_leap)
+
+    def test_year_boundaries(self):
+        """Should handle year boundaries correctly."""
+        new_year = parse("2026-01-01T00:00:00Z")
+        old_year = parse("2025-12-31T23:59:59Z")
+
+        diff = (new_year - old_year).total_seconds()
+        assert diff == 1  # One second apart
+
+    def test_february_29_leap_year(self):
+        """Should handle leap year dates."""
+        leap_day = parse("2024-02-29T12:00:00Z")
+
+        assert leap_day.month == 2
+        assert leap_day.day == 29
+        assert leap_day.year == 2024
+
+    def test_extreme_timezone_offsets(self):
+        """Should handle extreme timezone offsets."""
+        # Kiribati: UTC+14 (eastern-most timezone)
+        kiribati = parse("2026-01-02T14:00:00+14:00")
+        assert kiribati.hour == 0  # 14:00+14 = 00:00 next day UTC
+
+        # Baker Island: UTC-12 (western-most timezone)
+        baker = parse("2026-01-02T14:00:00-12:00")
+        assert baker.hour == 2  # 14:00-12 = 02:00 next day UTC
+        assert baker.day == 3  # Crosses into next day
+
+    def test_microsecond_precision(self):
+        """Should preserve microsecond precision."""
+        precise = parse("2026-01-02T15:30:45.123456Z")
+
+        assert precise.microsecond == 123456
+
+    def test_comparison_with_microseconds(self):
+        """Should correctly compare datetimes differing only by microseconds."""
+        dt1 = parse("2026-01-02T15:30:45.123456Z")
+        dt2 = parse("2026-01-02T15:30:45.123457Z")
+
+        assert dt2 > dt1
+        assert (dt2 - dt1).total_seconds() < 0.001
+
+    def test_human_diff_at_boundaries(self):
+        """Should handle human diff at day/month boundaries."""
+        jan_31 = parse("2026-01-31T23:59:59Z")
+        feb_01 = parse("2026-02-01T00:00:00Z")
+
+        diff = human_diff(jan_31, feb_01)
+        assert isinstance(diff, str)
+        # Should mention seconds or minutes, not days
+        assert "second" in diff or "minute" in diff
