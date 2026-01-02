@@ -8,6 +8,8 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field, field_validator
 
+from ..utils import dt
+
 
 class TaskStatus(str, Enum):
     """Task status."""
@@ -44,8 +46,8 @@ class TaskMetadata(BaseModel):
     status: TaskStatus = Field(default=TaskStatus.TODO, description="Current status")
 
     # Timestamps
-    created_at: datetime = Field(default_factory=datetime.now)
-    updated_at: datetime = Field(default_factory=datetime.now)
+    created_at: datetime = Field(default_factory=dt.now)
+    updated_at: datetime = Field(default_factory=dt.now)
     completed_at: Optional[datetime] = None
 
     # External links

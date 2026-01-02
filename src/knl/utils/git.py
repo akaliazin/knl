@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+from . import dt
+
 
 def get_current_branch() -> Optional[str]:
     """
@@ -172,7 +174,7 @@ def get_commits_since(ref: str, paths: Optional[list[str]] = None) -> list[Commi
                 body = "\n".join(lines[1:])
 
             try:
-                date = datetime.fromisoformat(date_str)
+                date = dt.parse(date_str)
             except ValueError:
                 # Skip commits with invalid dates
                 continue

@@ -11,6 +11,8 @@ from pathlib import Path
 
 from pydantic import BaseModel, Field
 
+from ..utils import dt
+
 
 class UpdateType(str, Enum):
     """Type of documentation update."""
@@ -146,7 +148,7 @@ class ChangelogEntry(BaseModel):
 
     version: str | None = Field(None, description="Version number (e.g., '1.2.0')")
     date: datetime = Field(
-        default_factory=datetime.now, description="Date of change"
+        default_factory=dt.now, description="Date of change"
     )
     category: str = Field(
         ..., description="Category (Added, Changed, Fixed, etc)"
@@ -174,7 +176,7 @@ class DocUpdateProposal(BaseModel):
     task_id: str | None = Field(None, description="Task ID this proposal is for")
     scope: str = Field(..., description="Scope of analysis (task, release, all)")
     analyzed_at: datetime = Field(
-        default_factory=datetime.now, description="When analysis was performed"
+        default_factory=dt.now, description="When analysis was performed"
     )
 
     # Analysis results
@@ -257,7 +259,7 @@ class ApprovalSession(BaseModel):
         ..., description="Unique ID for this proposal (for tracking)"
     )
     started_at: datetime = Field(
-        default_factory=datetime.now, description="When approval started"
+        default_factory=dt.now, description="When approval started"
     )
     completed_at: datetime | None = Field(None, description="When approval finished")
 
@@ -295,7 +297,7 @@ class DocCheckResult(BaseModel):
     """Results from knl docs check command."""
 
     checked_at: datetime = Field(
-        default_factory=datetime.now, description="When check was performed"
+        default_factory=dt.now, description="When check was performed"
     )
     scope: str = Field(..., description="What was checked")
 

@@ -12,6 +12,7 @@ from typing_extensions import Annotated
 from ..core.config import ConfigManager
 from ..core.paths import KnlPaths
 from ..models.task import Task, TaskIDType, TaskMetadata, TaskStatus
+from ..utils import dt
 
 app = typer.Typer()
 console = Console()
@@ -290,7 +291,7 @@ def update(
         try:
             metadata.status = TaskStatus(status)
             if metadata.status == TaskStatus.DONE and not metadata.completed_at:
-                metadata.completed_at = datetime.now()
+                metadata.completed_at = dt.now()
         except ValueError:
             console.print(f"[red]Error:[/red] Invalid status: {status}")
             raise typer.Exit(1)
@@ -298,7 +299,7 @@ def update(
     if title:
         metadata.title = title
 
-    metadata.updated_at = datetime.now()
+    metadata.updated_at = dt.now()
 
     # Save updated metadata
     with open(metadata_file, "w") as f:

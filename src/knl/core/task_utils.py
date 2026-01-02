@@ -1,12 +1,13 @@
 """Task integration utilities for documentation automation."""
 
 import json
-from datetime import datetime, timezone
+from datetime import datetime
 from pathlib import Path
 
 from ..core.paths import KnlPaths
 from ..models.task import Task, TaskMetadata
 from ..utils.git import Commit
+from ..utils import dt
 
 
 def get_task_creation_time(task_id: str, repo_root: Path | None = None) -> datetime | None:
@@ -37,11 +38,7 @@ def get_task_creation_time(task_id: str, repo_root: Path | None = None) -> datet
             data = json.load(f)
             created_str = data.get("created_at")
             if created_str:
-                dt = datetime.fromisoformat(created_str)
-                # Ensure timezone-aware for comparison with git commits
-                if dt.tzinfo is None:
-                    dt = dt.replace(tzinfo=timezone.utc)
-                return dt
+                return dt.parse(created_str)
     except (json.JSONDecodeError, ValueError, KeyError):
         pass
 
@@ -165,7 +162,7 @@ def get_task_commits(
                 body = "\n".join(lines[1:])
 
             try:
-                commit_date = datetime.fromisoformat(date_str)
+                commit_date = dt.parse(date_str)
             except ValueError:
                 continue
 
