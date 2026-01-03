@@ -6,12 +6,60 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
+from pydantic import BaseModel
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
 from rich.syntax import Syntax
 
 from ..models.docs import DocUpdate, DocUpdateProposal
+
+
+class EnrichedDocUpdate(BaseModel):
+    """
+    DocUpdate enriched with UI-friendly fields.
+
+    This wraps DocUpdate and adds fields needed by the approval UI.
+    """
+
+    # Original update
+    original: DocUpdate
+
+    # Enriched fields for UI
+    file_path: Path
+    gap_description: str | None = None
+
+    # Map model fields to UI-friendly names
+    @property
+    def type(self) -> str:
+        return self.original.type.value
+
+    @property
+    def old_text(self) -> str | None:
+        return self.original.old
+
+    @property
+    def new_text(self) -> str:
+        return self.original.new
+
+    @property
+    def reason(self) -> str:
+        return self.original.reason
+
+    @property
+    def priority(self) -> str:
+        return self.original.severity.value
+
+    @property
+    def line_start(self) -> int | None:
+        return self.original.line_number
+
+    @property
+    def line_end(self) -> int | None:
+        # Estimate end line based on content
+        if self.original.old and self.original.line_number:
+            return self.original.line_number + len(self.original.old.splitlines()) - 1
+        return self.original.line_number
 
 
 class ApprovalResult(Enum):
@@ -28,7 +76,7 @@ class ApprovalResult(Enum):
 class UpdateReview:
     """Review decision for a single update."""
 
-    update: DocUpdate
+    update: EnrichedDocUpdate
     action: ApprovalResult
     edited_content: str | None = None  # For EDITED action
 
@@ -108,21 +156,34 @@ class ApprovalUI:
 
         return self.reviews
 
-    def _flatten_updates(self, proposal: DocUpdateProposal) -> list[DocUpdate]:
+    def _flatten_updates(self, proposal: DocUpdateProposal) -> list[EnrichedDocUpdate]:
         """
-        Flatten all updates from proposal into a single list.
+        Flatten all updates from proposal into enriched list.
 
         Args:
             proposal: Proposal containing file updates
 
         Returns:
-            List of all doc updates
+            List of enriched doc updates with file context
         """
-        updates = []
+        enriched_updates = []
         for file_update in proposal.files:
             for update in file_update.updates:
-                updates.append(update)
-        return updates
+                # Find matching gap description if available
+                gap_desc = None
+                for gap in proposal.gaps:
+                    if file_update.path in gap.affected_files:
+                        gap_desc = gap.description
+                        break
+
+                # Create enriched update
+                enriched = EnrichedDocUpdate(
+                    original=update,
+                    file_path=file_update.path,
+                    gap_description=gap_desc,
+                )
+                enriched_updates.append(enriched)
+        return enriched_updates
 
     def _auto_approve_all(self, proposal: DocUpdateProposal) -> list[UpdateReview]:
         """
@@ -213,7 +274,7 @@ class ApprovalUI:
         )
         return response.upper() != "Q"
 
-    def _review_update(self, update: DocUpdate, number: int, total: int) -> ApprovalResult:
+    def _review_update(self, update: EnrichedDocUpdate, number: int, total: int) -> ApprovalResult:
         """
         Review a single update.
 
@@ -281,7 +342,7 @@ class ApprovalUI:
         # Get user action
         return self._get_user_action()
 
-    def _show_diff(self, update: DocUpdate) -> None:
+    def _show_diff(self, update: EnrichedDocUpdate) -> None:
         """
         Show a diff between old and new text.
 
@@ -420,7 +481,7 @@ class ApprovalUI:
 
         self.console.print()
 
-    def get_approved_updates(self) -> list[DocUpdate]:
+    def get_approved_updates(self) -> list[EnrichedDocUpdate]:
         """
         Get list of approved updates.
 
@@ -444,14 +505,14 @@ class ApprovalUI:
             Dictionary mapping file path to number of updates applied
         """
         repo_root = repo_root or Path.cwd()
-        updates_by_file: dict[str, list[DocUpdate]] = {}
+        updates_by_file: dict[str, list[EnrichedDocUpdate]] = {}
 
         # Group updates by file
         for review in self.reviews:
             if review.action not in (ApprovalResult.APPROVED, ApprovalResult.EDITED):
                 continue
 
-            path = review.update.file_path
+            path = str(review.update.file_path)
             if path not in updates_by_file:
                 updates_by_file[path] = []
             updates_by_file[path].append(review.update)
@@ -470,13 +531,13 @@ class ApprovalUI:
 
         return results
 
-    def _apply_file_updates(self, file_path: Path, updates: list[DocUpdate]) -> int:
+    def _apply_file_updates(self, file_path: Path, updates: list[EnrichedDocUpdate]) -> int:
         """
         Apply updates to a single file.
 
         Args:
             file_path: Path to file
-            updates: List of updates to apply
+            updates: List of enriched updates to apply
 
         Returns:
             Number of updates applied

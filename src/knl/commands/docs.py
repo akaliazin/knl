@@ -10,6 +10,9 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.doc_analyzer import DocAnalyzer
+from ..integrations.mcp import MCPClient, MCPError
+from ..models.docs import DocUpdateProposal
+from ..ui.approval import ApprovalUI
 from ..utils.cli_help import (
     extract_typer_app_info,
     format_help_as_dict,
@@ -494,30 +497,106 @@ def update(
         console.print(f"  {i}. {gap}")
     console.print()
 
-    # Step 3: Call MCP server for AI analysis (TODO)
-    console.print("[dim]AI-powered analysis...[/dim]")
-    console.print(
-        "[yellow]Note:[/yellow] MCP server integration not yet implemented"
-    )
-    console.print(
-        "  This would call the knl-docs-analyzer MCP server to generate"
-    )
-    console.print("  specific documentation update proposals using AI.\n")
+    # Step 3: Call MCP server for AI analysis
+    console.print("[dim]Calling AI-powered analysis...[/dim]")
 
-    # Step 4: Present proposals for approval (TODO)
+    try:
+        # Call MCP server asynchronously
+        import asyncio
+
+        async def analyze() -> DocUpdateProposal:
+            async with MCPClient("knl-docs-analyzer") as client:
+                # Prepare context for MCP server
+                context_dict = context.to_dict()
+
+                # Call analyze_doc_gaps tool
+                result = await client.call_tool("analyze_doc_gaps", {
+                    "task_id": task_id,
+                    "context": context_dict,
+                })
+
+                # Parse result as DocUpdateProposal
+                return DocUpdateProposal(**result)
+
+        proposal = asyncio.run(analyze())
+
+        console.print(f"[green]✓[/green] Analysis complete (confidence: {int(proposal.confidence * 100)}%)")
+        console.print(f"  Proposal: {len(proposal.files)} files, {sum(len(f.updates) for f in proposal.files)} updates\n")
+
+    except MCPError as e:
+        console.print(f"[red]Error:[/red] MCP server error: {e}")
+        console.print("[yellow]Note:[/yellow] Make sure MCP server is configured correctly")
+        console.print("  Falling back to heuristic analysis only.\n")
+
+        # Create a minimal proposal from heuristics
+        from ..models.docs import DocGap
+
+        proposal = DocUpdateProposal(
+            task_id=task_id,
+            scope=scope,
+            commits_analyzed=len(context.commits),
+            files_changed=len(context.changed_files),
+            gaps=[
+                DocGap(
+                    gap_type="heuristic_gap",
+                    description=gap,
+                    severity="medium",
+                    affected_files=[],
+                    suggested_action="Review and update documentation as needed",
+                )
+                for i, gap in enumerate(gaps, 1)
+            ],
+            files=[],
+            confidence=0.5,
+        )
+
+    # Step 4: Present proposals for approval
     if dry_run:
-        console.print("[dim]Dry run mode - no changes will be applied[/dim]\n")
-        console.print("Next steps:")
-        console.print("  1. Implement MCP server integration")
-        console.print("  2. Build approval UI for reviewing changes")
-        console.print("  3. Apply approved changes to documentation\n")
-    else:
-        console.print("[yellow]Warning:[/yellow] Approval UI not yet implemented")
-        console.print("  Use --dry-run to preview the workflow\n")
+        console.print("[dim]Dry run mode - showing proposal without applying[/dim]\n")
 
-    # Summary
-    console.print("[bold]Summary:[/bold]")
-    console.print(f"  Task: {task_id}")
-    console.print(f"  Scope: {scope}")
-    console.print(f"  Gaps found: {len(gaps)}")
-    console.print("  Status: [yellow]Analysis complete, pending implementation[/yellow]\n")
+        # Show proposal summary
+        console.print("[bold]Proposed Updates:[/bold]")
+        for file_update in proposal.files:
+            console.print(f"\n  [cyan]{file_update.path}[/cyan]")
+            for update in file_update.updates:
+                priority_color = {
+                    "critical": "red",
+                    "high": "yellow",
+                    "medium": "blue",
+                    "low": "dim",
+                }.get(update.severity.value, "dim")
+                console.print(
+                    f"    [{priority_color}]{update.severity.value}[/{priority_color}] - {update.reason}"
+                )
+
+        console.print("\n[dim]Run without --dry-run to review and apply changes[/dim]\n")
+        return
+
+    # Interactive approval
+    if not proposal.files:
+        console.print("[yellow]No updates proposed.[/yellow]")
+        console.print("  The AI analysis didn't suggest any specific changes.\n")
+        return
+
+    console.print(f"\n[bold]Reviewing {len(proposal.files)} file(s)...[/bold]\n")
+
+    # Create approval UI and run review
+    approval_ui = ApprovalUI(console)
+    reviews = approval_ui.review_proposal(proposal, auto_approve=auto_approve)
+
+    if not reviews:
+        console.print("[yellow]Review cancelled or no changes approved.[/yellow]\n")
+        return
+
+    # Apply approved updates
+    console.print("\n[bold]Applying Changes...[/bold]")
+    results = approval_ui.apply_updates()
+
+    # Show summary
+    total_updates = sum(results.values())
+    console.print(f"\n[green]✓[/green] Applied {total_updates} update(s) to {len(results)} file(s)")
+
+    console.print("\n[bold]Next Steps:[/bold]")
+    console.print("  • Review the changes with [cyan]git diff[/cyan]")
+    console.print("  • Run [cyan]knl docs check[/cyan] to verify documentation")
+    console.print("  • Commit the changes when ready\n")
