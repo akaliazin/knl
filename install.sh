@@ -316,6 +316,22 @@ def download_and_install_knl(
     else:
         venv_python = venv_dir / 'bin' / 'python'
 
+    # Pin Python version in .python-version file
+    try:
+        result = subprocess.run(
+            [python_cmd, '-c',
+             'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        python_version = result.stdout.strip()
+        python_version_file = install_dir / '.python-version'
+        python_version_file.write_text(python_version)
+        print_success(f"Pinned Python version {python_version} in {python_version_file}")
+    except subprocess.CalledProcessError as e:
+        print_warning(f"Could not determine Python version: {e}")
+
     # Install KNL
     if is_local_dev:
         # Install in editable mode from local directory

@@ -10,7 +10,7 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.doc_analyzer import DocAnalyzer
-from ..integrations.mcp import MCPClient, MCPError
+from ..integrations.mcp import MCPError
 from ..models.docs import DocUpdateProposal
 from ..ui.approval import ApprovalUI
 from ..utils.cli_help import (
@@ -501,27 +501,30 @@ def update(
     console.print("[dim]Calling AI-powered analysis...[/dim]")
 
     try:
-        # Call MCP server asynchronously
-        import asyncio
+        # Prepare context for MCP server
+        from ..integrations.mcp import sync_call_tool
 
-        async def analyze() -> DocUpdateProposal:
-            async with MCPClient("knl-docs-analyzer") as client:
-                # Prepare context for MCP server
-                context_dict = context.to_dict()
+        context_dict = context.to_dict()
 
-                # Call analyze_doc_gaps tool
-                result = await client.call_tool("analyze_doc_gaps", {
-                    "task_id": task_id,
-                    "context": context_dict,
-                })
+        # Call analyze_doc_gaps tool synchronously
+        result = sync_call_tool(
+            "knl-docs-analyzer",
+            "analyze_doc_gaps",
+            {
+                "task_id": task_id,
+                "context": context_dict,
+            },
+        )
 
-                # Parse result as DocUpdateProposal
-                return DocUpdateProposal(**result)
+        # Parse result as DocUpdateProposal
+        proposal = DocUpdateProposal(**result)
 
-        proposal = asyncio.run(analyze())
-
-        console.print(f"[green]✓[/green] Analysis complete (confidence: {int(proposal.confidence * 100)}%)")
-        console.print(f"  Proposal: {len(proposal.files)} files, {sum(len(f.updates) for f in proposal.files)} updates\n")
+        console.print(
+            f"[green]✓[/green] Analysis complete (confidence: {int(proposal.confidence * 100)}%)"
+        )
+        console.print(
+            f"  Proposal: {len(proposal.files)} files, {sum(len(f.updates) for f in proposal.files)} updates\n"
+        )
 
     except MCPError as e:
         console.print(f"[red]Error:[/red] MCP server error: {e}")

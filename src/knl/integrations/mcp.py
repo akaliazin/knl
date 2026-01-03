@@ -102,9 +102,26 @@ class MCPClient:
         # Try to load from config
         # For now, use default config for knl-docs-analyzer
         if server_name == "knl-docs-analyzer":
+            # Find KNL's venv Python (not the system Python)
+            import sys
+            from pathlib import Path
+
+            # Get KNL installation directory from this file's location
+            # This file is in src/knl/integrations/mcp.py
+            # KNL venv should be at .knl/venv relative to the repo root
+            knl_dir = Path(__file__).parent.parent.parent.parent / ".knl"
+            if knl_dir.exists():
+                venv_python = knl_dir / "venv" / "bin" / "python"
+                if venv_python.exists():
+                    python_cmd = str(venv_python)
+                else:
+                    python_cmd = sys.executable
+            else:
+                python_cmd = sys.executable
+
             return MCPServerConfig(
                 name="knl-docs-analyzer",
-                command="python",
+                command=python_cmd,
                 args=["-m", "knl_docs_analyzer.server"],
                 env={},
             )
@@ -140,9 +157,9 @@ class MCPClient:
                 env=self._config.env or None,
             )
 
-            # Connect via stdio
-            stdio_transport = await stdio_client(server_params)
-            self._read_stream, self._write_stream = stdio_transport
+            # Connect via stdio - stdio_client is an async context manager
+            self._stdio_context = stdio_client(server_params)
+            self._read_stream, self._write_stream = await self._stdio_context.__aenter__()
 
             # Create session
             self._session = ClientSession(self._read_stream, self._write_stream)
@@ -172,11 +189,9 @@ class MCPClient:
             return
 
         try:
-            # Close streams if they exist
-            if hasattr(self, "_read_stream"):
-                await self._read_stream.aclose()
-            if hasattr(self, "_write_stream"):
-                await self._write_stream.aclose()
+            # Exit the stdio context manager if it exists
+            if hasattr(self, "_stdio_context"):
+                await self._stdio_context.__aexit__(None, None, None)
 
             self._connected = False
             self._tools = {}

@@ -56,6 +56,9 @@ dependencies = [
     # CLI utilities
     "plumbum>=1.9.0",
     "pytz>=2025.2",
+
+    # MCP for AI-powered documentation
+    "mcp>=1.0.0",
 ]
 
 [project.optional-dependencies]
