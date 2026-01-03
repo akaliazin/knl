@@ -52,6 +52,25 @@ class TaskConfig(BaseModel):
     custom_pattern: str | None = None
 
 
+class DocsConfig(BaseModel):
+    """Documentation configuration."""
+
+    mcp_server: str = Field(
+        default="knl-docs-analyzer", description="MCP server name for documentation analysis"
+    )
+    auto_approve: bool = Field(
+        default=False, description="Auto-approve documentation updates without user confirmation"
+    )
+    changelog_template: str = Field(
+        default="## [{version}] - {date}\n\n{content}",
+        description="Template for CHANGELOG entries",
+    )
+    cli_ref_dir: Path = Field(default=Path("docs/cli"), description="CLI reference documentation directory")
+    coverage_threshold: float = Field(
+        default=0.8, ge=0.0, le=1.0, description="Minimum documentation coverage required (0.0-1.0)"
+    )
+
+
 class GlobalConfig(BaseSettings):
     """Global configuration stored in ~/.config/knl/config.toml."""
 
@@ -69,6 +88,9 @@ class GlobalConfig(BaseSettings):
 
     # Default task configuration
     task: TaskConfig = Field(default_factory=TaskConfig)
+
+    # Documentation configuration
+    docs: DocsConfig = Field(default_factory=DocsConfig)
 
     # Integrations (can be overridden locally)
     integrations_jira: JiraIntegration = Field(
@@ -96,6 +118,9 @@ class LocalConfig(BaseSettings):
 
     # Repository-specific task configuration
     task: TaskConfig = Field(default_factory=TaskConfig)
+
+    # Documentation configuration (override global)
+    docs: DocsConfig | None = Field(default=None)
 
     # Local integrations (override global)
     integrations_jira: JiraIntegration | None = Field(

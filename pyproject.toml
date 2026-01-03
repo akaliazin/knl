@@ -102,6 +102,11 @@ tui = [
     "textual>=1.0.0",
 ]
 
+mcp = [
+    # MCP integration for AI-powered documentation
+    "mcp>=1.0.0",
+]
+
 [project.scripts]
 knl = "knl.cli:app"
 kdt = "knl.cli:app"
