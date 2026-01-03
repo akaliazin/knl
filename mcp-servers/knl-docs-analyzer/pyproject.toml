@@ -1,0 +1,16 @@
+[project]
+name = "knl-docs-analyzer"
+version = "0.1.0"
+description = "MCP server for AI-powered documentation analysis"
+requires-python = ">=3.14"
+dependencies = [
+    "mcp>=1.0.0",
+    "anthropic>=0.40.0",
+]
+
+[project.scripts]
+knl-docs-analyzer = "knl_docs_analyzer.server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
