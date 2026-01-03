@@ -239,13 +239,16 @@ class DocAnalyzer:
         """
         gaps = []
 
+        # Convert changed_files to strings if they're Path objects
+        changed_files_str = [str(f) for f in context.changed_files]
+
         # Check if new files were added
-        new_files = [f for f in context.changed_files if not f.startswith("tests/")]
+        new_files = [f for f in changed_files_str if not f.startswith("tests/")]
         if new_files:
             gaps.append(f"New files added: {len(new_files)} files. May need documentation.")
 
         # Check if CLI commands were modified
-        cli_files = [f for f in context.changed_files if "commands" in f and f.endswith(".py")]
+        cli_files = [f for f in changed_files_str if "commands" in f and f.endswith(".py")]
         if cli_files:
             gaps.append(
                 f"CLI commands modified: {len(cli_files)} files. CLI reference may need update."

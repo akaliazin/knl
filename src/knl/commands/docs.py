@@ -3,12 +3,13 @@
 import json
 import re
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
 import typer
 from rich.console import Console
 from rich.table import Table
 
+from ..core.doc_analyzer import DocAnalyzer
 from ..utils.cli_help import (
     extract_typer_app_info,
     format_help_as_dict,
@@ -415,3 +416,108 @@ def sync(
     console.print("\n[green]✓[/green] Updated CLI documentation")
     console.print(f"  File: [cyan]{output}[/cyan]")
     console.print(f"  Commands documented: [cyan]{len(info.subcommands)}[/cyan]\n")
+
+
+@app.command()
+def update(
+    task_id: Annotated[str, typer.Argument(help="Task ID to analyze")],
+    scope: Annotated[
+        Literal["task", "release"],
+        typer.Option("--scope", "-s", help="Analysis scope"),
+    ] = "task",
+    auto_approve: Annotated[
+        bool,
+        typer.Option("--auto-approve", help="Auto-approve all changes without review"),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show proposed changes without applying them"),
+    ] = False,
+) -> None:
+    """
+    AI-assisted documentation updates based on code changes.
+
+    Analyzes code changes for a task and suggests documentation updates.
+    Uses MCP server for AI-powered analysis and presents changes for approval.
+
+    Examples:
+        # Analyze task changes and suggest updates
+        knl docs update gh-1
+
+        # Analyze all changes since last release
+        knl docs update gh-1 --scope release
+
+        # Auto-approve all suggested changes
+        knl docs update gh-1 --auto-approve
+
+        # Preview changes without applying
+        knl docs update gh-1 --dry-run
+    """
+    from ..core.task_utils import task_exists
+
+    # Validate task exists
+    if not task_exists(task_id):
+        console.print(f"[red]Error:[/red] Task {task_id} not found")
+        console.print("  Run [cyan]knl list[/cyan] to see available tasks")
+        raise typer.Exit(1)
+
+    console.print("\n[bold]Documentation Update Analysis[/bold]")
+    console.print(f"Task: [cyan]{task_id}[/cyan]")
+    console.print(f"Scope: [cyan]{scope}[/cyan]\n")
+
+    # Step 1: Gather context
+    console.print("[dim]Gathering context...[/dim]")
+    analyzer = DocAnalyzer()
+
+    try:
+        context = analyzer.gather_context(task_id, scope=scope)
+    except Exception as e:
+        console.print(f"[red]Error:[/red] Failed to gather context: {e}")
+        raise typer.Exit(1) from None
+
+    # Display analysis summary
+    console.print(f"  Commits analyzed: [cyan]{len(context.commits)}[/cyan]")
+    console.print(f"  Files changed: [cyan]{len(context.changed_files)}[/cyan]")
+    console.print(f"  Diff size: [cyan]{len(context.diff)} chars[/cyan]\n")
+
+    # Step 2: Identify gaps (heuristic analysis)
+    console.print("[dim]Identifying documentation gaps...[/dim]")
+    gaps = analyzer.identify_documentation_gaps(context)
+
+    if not gaps:
+        console.print("[green]✓[/green] No documentation gaps found!")
+        console.print("  Documentation appears to be up to date.\n")
+        return
+
+    console.print(f"[yellow]Found {len(gaps)} potential gaps:[/yellow]")
+    for i, gap in enumerate(gaps, 1):
+        console.print(f"  {i}. {gap}")
+    console.print()
+
+    # Step 3: Call MCP server for AI analysis (TODO)
+    console.print("[dim]AI-powered analysis...[/dim]")
+    console.print(
+        "[yellow]Note:[/yellow] MCP server integration not yet implemented"
+    )
+    console.print(
+        "  This would call the knl-docs-analyzer MCP server to generate"
+    )
+    console.print("  specific documentation update proposals using AI.\n")
+
+    # Step 4: Present proposals for approval (TODO)
+    if dry_run:
+        console.print("[dim]Dry run mode - no changes will be applied[/dim]\n")
+        console.print("Next steps:")
+        console.print("  1. Implement MCP server integration")
+        console.print("  2. Build approval UI for reviewing changes")
+        console.print("  3. Apply approved changes to documentation\n")
+    else:
+        console.print("[yellow]Warning:[/yellow] Approval UI not yet implemented")
+        console.print("  Use --dry-run to preview the workflow\n")
+
+    # Summary
+    console.print("[bold]Summary:[/bold]")
+    console.print(f"  Task: {task_id}")
+    console.print(f"  Scope: {scope}")
+    console.print(f"  Gaps found: {len(gaps)}")
+    console.print("  Status: [yellow]Analysis complete, pending implementation[/yellow]\n")
