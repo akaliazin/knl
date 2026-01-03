@@ -369,3 +369,18 @@ knl docs sync
 
 - `--verify-only` - Check sync without updating files
 - `--output` - Output file (default: docs/cli/commands.md)
+
+### `knl docs update`
+
+AI-assisted documentation updates based on code changes. Analyzes code changes for a task and suggests documentation updates. Uses MCP server for AI-powered analysis and presents changes for approval. Examples: # Analyze task changes and suggest updates knl docs update gh-1 # Analyze all changes since last release knl docs update gh-1 --scope release # Auto-approve all suggested changes knl docs update gh-1 --auto-approve # Preview changes without applying knl docs update gh-1 --dry-run
+
+```bash
+knl docs update
+```
+
+**Options:**
+
+- `task_id` - Task ID to analyze
+- `--scope` - Analysis scope (default: `task`)
+- `--auto-approve` - Auto-approve all changes without review
+- `--dry-run` - Show proposed changes without applying them
