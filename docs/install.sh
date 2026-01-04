@@ -128,12 +128,27 @@ def get_install_location(force_user_local: bool = False) -> Path:
     return Path.home() / '.local' / 'knl'
 
 
-def get_config_location() -> Path:
-    """Get configuration directory location (XDG-compliant)."""
-    xdg_cache = os.environ.get('XDG_CACHE_HOME')
-    if xdg_cache:
-        return Path(xdg_cache) / 'knl'
-    return Path.home() / '.cache' / 'knl'
+def get_config_location(is_repo_local: bool = False, install_dir: Optional[Path] = None) -> Path:
+    """
+    Get configuration directory location.
+
+    Args:
+        is_repo_local: Whether this is a repo-local installation
+        install_dir: Installation directory (required for repo-local)
+
+    Returns:
+        Path to configuration directory
+    """
+    if is_repo_local:
+        if install_dir is None:
+            raise ValueError("install_dir required for repo-local config location")
+        return install_dir / 'config'
+
+    # User-local: use XDG-compliant location
+    xdg_config = os.environ.get('XDG_CONFIG_HOME')
+    if xdg_config:
+        return Path(xdg_config) / 'knl'
+    return Path.home() / '.config' / 'knl'
 
 
 def check_python_version(min_version: str = "3.14") -> Tuple[bool, str]:
@@ -316,6 +331,29 @@ def download_and_install_knl(
     else:
         venv_python = venv_dir / 'bin' / 'python'
 
+    # Pin Python version using UV's native pinning
+    try:
+        # Get Python version for pinning
+        result = subprocess.run(
+            [python_cmd, '-c',
+             'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        python_version = result.stdout.strip()
+
+        # Use UV to pin the Python version (creates .python-version file)
+        subprocess.run(
+            ['uv', 'python', 'pin', python_version],
+            cwd=install_dir,
+            check=True,
+            capture_output=True
+        )
+        print_success(f"Pinned Python version {python_version} using UV")
+    except subprocess.CalledProcessError as e:
+        print_warning(f"Could not pin Python version: {e}")
+
     # Install KNL
     if is_local_dev:
         # Install in editable mode from local directory
@@ -365,41 +403,96 @@ def download_and_install_knl(
     version_file.write_text(package_spec)
 
 
-def create_wrapper_script(install_dir: Path, is_repo_local: bool):
+def deploy_crumbs(install_dir: Path):
+    """
+    Deploy know-how crumbs to installation directory.
+
+    Args:
+        install_dir: Installation directory
+    """
+    print_step("Deploying knowledge crumbs...")
+
+    # Determine source location for crumbs
+    is_local_dev = (Path.cwd() / '.git').exists() and (Path.cwd() / 'pyproject.toml').exists()
+
+    if is_local_dev:
+        # Local development - copy from current directory
+        source_dir = Path.cwd() / 'know-how'
+        if not source_dir.exists():
+            print_warning("know-how directory not found in local repository")
+            return
+    else:
+        # Remote installation - need to download from GitHub
+        print_info("Downloading crumbs from GitHub...")
+        # For now, skip downloading - this will be added when we have releases with crumbs
+        print_warning("Remote crumbs download not yet implemented")
+        return
+
+    # Destination
+    dest_dir = install_dir / 'know-how'
+
+    # Copy crumbs
+    if source_dir.exists():
+        if dest_dir.exists():
+            shutil.rmtree(dest_dir)
+
+        shutil.copytree(source_dir, dest_dir)
+        print_success(f"Deployed crumbs to {dest_dir}")
+
+        # Count crumbs
+        crumbs_count = sum(1 for _ in (dest_dir / 'crumbs').rglob('*.md'))
+        print_info(f"Available crumbs: {crumbs_count}")
+    else:
+        print_warning("No crumbs found to deploy")
+
+
+def create_wrapper_script(install_dir: Path, is_repo_local: bool, is_compiled: bool = False):
     """
     Create wrapper script for knl command.
 
     Args:
         install_dir: Installation directory
         is_repo_local: Whether this is a repo-local installation
+        is_compiled: Whether this is a compiled binary installation
     """
     print_step("Creating wrapper scripts...")
 
-    # Determine venv location
-    venv_dir = install_dir / 'venv'
-
-    if platform.system() == 'Windows':
-        knl_bin = venv_dir / 'Scripts' / 'knl.exe'
-        bin_dir = install_dir / 'bin'
-    else:
-        knl_bin = venv_dir / 'bin' / 'knl'
-        bin_dir = install_dir / 'bin'
-
-    # Create bin directory
+    bin_dir = install_dir / 'bin'
     bin_dir.mkdir(parents=True, exist_ok=True)
+
+    if is_compiled:
+        # For compiled binary, point to the .pyz file
+        knl_bin = install_dir / 'knl.pyz'
+    else:
+        # For venv installation
+        venv_dir = install_dir / 'venv'
+        if platform.system() == 'Windows':
+            knl_bin = venv_dir / 'Scripts' / 'knl.exe'
+        else:
+            knl_bin = venv_dir / 'bin' / 'knl'
 
     # Create wrapper script
     wrapper = bin_dir / 'knl'
 
     if platform.system() == 'Windows':
         # Windows batch script
-        wrapper_content = f"""@echo off
+        if is_compiled:
+            wrapper_content = f"""@echo off
+python "{knl_bin}" %*
+"""
+        else:
+            wrapper_content = f"""@echo off
 "{knl_bin}" %*
 """
         wrapper.write_text(wrapper_content)
     else:
         # Unix shell script
-        wrapper_content = f"""#!/usr/bin/env bash
+        if is_compiled:
+            wrapper_content = f"""#!/usr/bin/env bash
+exec "{knl_bin}" "$@"
+"""
+        else:
+            wrapper_content = f"""#!/usr/bin/env bash
 exec "{knl_bin}" "$@"
 """
         wrapper.write_text(wrapper_content)
@@ -408,12 +501,22 @@ exec "{knl_bin}" "$@"
     # Create kdt alias
     kdt_wrapper = bin_dir / 'kdt'
     if platform.system() == 'Windows':
-        kdt_content = f"""@echo off
+        if is_compiled:
+            kdt_content = f"""@echo off
+python "{knl_bin}" %*
+"""
+        else:
+            kdt_content = f"""@echo off
 "{knl_bin}" %*
 """
         kdt_wrapper.write_text(kdt_content)
     else:
-        kdt_content = f"""#!/usr/bin/env bash
+        if is_compiled:
+            kdt_content = f"""#!/usr/bin/env bash
+exec "{knl_bin}" "$@"
+"""
+        else:
+            kdt_content = f"""#!/usr/bin/env bash
 exec "{knl_bin}" "$@"
 """
         kdt_wrapper.write_text(kdt_content)
@@ -515,6 +618,80 @@ def update_gitignore(install_dir: Path):
     print_success("Updated .gitignore")
 
 
+def install_compiled_binary(
+    install_dir: Path,
+    version: Optional[str] = None,
+    binary_path: Optional[str] = None,
+    repo: str = "akaliazin/knl"
+):
+    """
+    Install KNL from compiled binary.
+
+    Args:
+        install_dir: Installation directory
+        version: Specific version to install
+        binary_path: Path to local binary file
+        repo: GitHub repository
+    """
+    print_step("Installing KNL from compiled binary...")
+
+    # Create installation directory
+    install_dir.mkdir(parents=True, exist_ok=True)
+
+    dest_binary = install_dir / 'knl.pyz'
+
+    if binary_path:
+        # Use local binary
+        print_info(f"Using local binary: {binary_path}")
+        binary_file = Path(binary_path)
+
+        if not binary_file.exists():
+            print_error(f"Binary file not found: {binary_path}")
+            sys.exit(1)
+
+        shutil.copy(binary_file, dest_binary)
+    else:
+        # Download from GitHub releases
+        print_info("Downloading binary from GitHub releases...")
+
+        if not version:
+            latest = get_latest_version(repo)
+            if latest:
+                version = latest
+                print_info(f"Latest version: {version}")
+            else:
+                print_error("Could not determine latest version")
+                print_info("Please specify a version with --version or provide --binary-path")
+                sys.exit(1)
+
+        # Construct download URL
+        download_url = f"https://github.com/{repo}/releases/download/{version}/knl.pyz"
+
+        try:
+            print_info(f"Downloading from: {download_url}")
+            with urllib.request.urlopen(download_url, timeout=30) as response:
+                dest_binary.write_bytes(response.read())
+        except urllib.error.HTTPError as e:
+            print_error(f"Failed to download binary: HTTP {e.code}")
+            print_info("Binary may not be available for this version")
+            print_info("Try building locally with: make build-binary")
+            sys.exit(1)
+        except Exception as e:
+            print_error(f"Failed to download binary: {e}")
+            sys.exit(1)
+
+    # Make binary executable
+    dest_binary.chmod(0o755)
+    print_success("Binary installed")
+
+    # Store version information
+    version_file = install_dir / '.version'
+    version_info = f"compiled:{version if version else 'local'}"
+    if binary_path:
+        version_info += f":{binary_path}"
+    version_file.write_text(version_info)
+
+
 def create_initial_config(config_dir: Path):
     """
     Create initial configuration.
@@ -567,6 +744,10 @@ verbose = false
 
 def main():
     """Main installer function."""
+    # Handle 'help' argument (user-friendly alias for --help)
+    if len(sys.argv) > 1 and sys.argv[1] in ('help', '-help'):
+        sys.argv[1] = '--help'
+
     # Parse arguments
     parser = argparse.ArgumentParser(
         description='Install KNL (Knowledge Retention Library)'
@@ -589,6 +770,15 @@ def main():
         default='akaliazin/knl',
         help='GitHub repository (default: akaliazin/knl)'
     )
+    parser.add_argument(
+        '--compiled',
+        action='store_true',
+        help='Install compiled binary instead of source (more portable, no venv needed)'
+    )
+    parser.add_argument(
+        '--binary-path',
+        help='Path to local compiled binary (use with --compiled)'
+    )
 
     args = parser.parse_args()
 
@@ -604,69 +794,108 @@ def main():
     print_info(f"Installation type: {'repo-local' if is_repo_local else 'user-local'}\n")
 
     # Get config location
-    config_dir = get_config_location()
+    config_dir = get_config_location(is_repo_local, install_dir)
     print_info(f"Configuration directory: {config_dir}\n")
 
-    # Find Python for KNL
-    print_step("Finding Python for KNL...")
+    # Installation mode
+    if args.compiled:
+        print_info("Installation mode: Compiled binary\n")
 
-    # Try to get minimum version from pyproject.toml if in repo
-    min_version = "3.14"
-    pyproject = Path.cwd() / 'pyproject.toml'
-    if pyproject.exists():
-        try:
-            content = pyproject.read_text()
-            match = re.search(r'requires-python\s*=\s*["\']>=\s*(\d+\.\d+)', content)
-            if match:
-                min_version = match.group(1)
-                print_info(f"Minimum Python version from pyproject.toml: {min_version}")
-        except Exception:
-            pass
+        # For compiled binary, we still need Python to run it, but less restrictive
+        print_step("Checking Python availability...")
+        python_cmd = find_python_for_knl("3.8")  # Compiled binaries work with Python 3.8+
 
-    python_cmd = find_python_for_knl(min_version)
-
-    if not python_cmd:
-        print_error(f"Could not find Python {min_version}+ for KNL")
-        print_info("\nPlease install Python {min_version}+ and try again.")
-        print_info("Installation options:")
-        print_info("  - pyenv: https://github.com/pyenv/pyenv")
-        print_info("  - python.org: https://www.python.org/downloads/")
-        print_info("  - Homebrew (macOS): brew install python@{min_version}")
-        sys.exit(1)
-
-    # Get Python version
-    result = subprocess.run(
-        [python_cmd, '-c',
-         'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")'],
-        capture_output=True,
-        text=True
-    )
-    python_version = result.stdout.strip()
-    print_success(f"Found Python {python_version} at {python_cmd}\n")
-
-    # Check UV
-    if not check_uv():
-        print_warning("UV not found")
-        response = input("UV is required. Install it now? (y/n) ").strip().lower()
-        if response in ('y', 'yes'):
-            install_uv()
-        else:
-            print_error("UV is required to install KNL. Aborting.")
+        if not python_cmd:
+            print_error("Could not find Python 3.8+ to run compiled binary")
+            print_info("\nPlease install Python 3.8+ and try again.")
             sys.exit(1)
+
+        result = subprocess.run(
+            [python_cmd, '-c',
+             'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")'],
+            capture_output=True,
+            text=True
+        )
+        python_version = result.stdout.strip()
+        print_success(f"Found Python {python_version} at {python_cmd}\n")
+
+        # Install compiled binary
+        install_compiled_binary(
+            install_dir,
+            version=args.version,
+            binary_path=args.binary_path,
+            repo=args.repo
+        )
+
+        # Create wrapper scripts
+        create_wrapper_script(install_dir, is_repo_local, is_compiled=True)
+
     else:
-        print_success("UV found\n")
+        print_info("Installation mode: Source (with virtual environment)\n")
 
-    # Install KNL
-    download_and_install_knl(
-        install_dir,
-        python_cmd,
-        version=args.version,
-        ref=args.ref,
-        repo=args.repo
-    )
+        # Find Python for KNL
+        print_step("Finding Python for KNL...")
 
-    # Create wrapper scripts
-    create_wrapper_script(install_dir, is_repo_local)
+        # Try to get minimum version from pyproject.toml if in repo
+        min_version = "3.14"
+        pyproject = Path.cwd() / 'pyproject.toml'
+        if pyproject.exists():
+            try:
+                content = pyproject.read_text()
+                match = re.search(r'requires-python\s*=\s*["\']>=\s*(\d+\.\d+)', content)
+                if match:
+                    min_version = match.group(1)
+                    print_info(f"Minimum Python version from pyproject.toml: {min_version}")
+            except Exception:
+                pass
+
+        python_cmd = find_python_for_knl(min_version)
+
+        if not python_cmd:
+            print_error(f"Could not find Python {min_version}+ for KNL")
+            print_info(f"\nPlease install Python {min_version}+ and try again.")
+            print_info("Installation options:")
+            print_info("  - pyenv: https://github.com/pyenv/pyenv")
+            print_info("  - python.org: https://www.python.org/downloads/")
+            print_info(f"  - Homebrew (macOS): brew install python@{min_version}")
+            sys.exit(1)
+
+        # Get Python version
+        result = subprocess.run(
+            [python_cmd, '-c',
+             'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")'],
+            capture_output=True,
+            text=True
+        )
+        python_version = result.stdout.strip()
+        print_success(f"Found Python {python_version} at {python_cmd}\n")
+
+        # Check UV
+        if not check_uv():
+            print_warning("UV not found")
+            response = input("UV is required. Install it now? (y/n) ").strip().lower()
+            if response in ('y', 'yes'):
+                install_uv()
+            else:
+                print_error("UV is required to install KNL. Aborting.")
+                sys.exit(1)
+        else:
+            print_success("UV found\n")
+
+        # Install KNL
+        download_and_install_knl(
+            install_dir,
+            python_cmd,
+            version=args.version,
+            ref=args.ref,
+            repo=args.repo
+        )
+
+        # Create wrapper scripts
+        create_wrapper_script(install_dir, is_repo_local, is_compiled=False)
+
+    # Deploy crumbs (for both installation modes)
+    deploy_crumbs(install_dir)
 
     # Setup PATH (only for user-local installations)
     if not is_repo_local:
@@ -682,21 +911,126 @@ def main():
     # Create initial configuration
     create_initial_config(config_dir)
 
+    # Compile Python bytecode for faster first run (only for source installs)
+    if not args.compiled:
+        print_step("Compiling Python bytecode...")
+        venv_dir = install_dir / 'venv'
+        if platform.system() == 'Windows':
+            venv_python = venv_dir / 'Scripts' / 'python.exe'
+        else:
+            venv_python = venv_dir / 'bin' / 'python'
+
+        try:
+            # Compile all Python files in the venv's site-packages
+            subprocess.run(
+                [str(venv_python), '-m', 'compileall', '-q', str(venv_dir / 'lib')],
+                check=True,
+                capture_output=True
+            )
+            print_success("Bytecode compiled")
+        except subprocess.CalledProcessError:
+            # Non-fatal, just means slower first run
+            print_warning("Could not compile bytecode (non-fatal)")
+
+    # Show version information
+    print()
+    knl_bin = install_dir / 'bin' / 'knl'
+    if knl_bin.exists():
+        try:
+            # Run without capturing output so it displays to user
+            # Flush stdout before running to avoid buffering issues
+            sys.stdout.flush()
+            result = subprocess.run([str(knl_bin), 'version'])
+            sys.stdout.flush()
+        except Exception:
+            # Silently ignore any errors
+            pass
+
     # Print success message
     print()
     print_success("KNL installed successfully!\n")
     print_info(f"Installation directory: {install_dir}")
+    print_info(f"Installation mode: {'Compiled binary' if args.compiled else 'Source (venv)'}")
     print_info(f"Python used: {python_cmd} ({python_version})")
-    print_info(f"Configuration: {config_dir}\n")
-    print_info("Next steps:")
-    if not is_repo_local:
-        print("  1. Restart your shell or source your shell config")
+    print_info(f"Configuration: {config_dir}")
+
+    # Check if crumbs were deployed
+    crumbs_dir = install_dir / 'know-how' / 'crumbs'
+    if crumbs_dir.exists():
+        crumbs_count = sum(1 for _ in crumbs_dir.rglob('*.md'))
+        print_info(f"Knowledge crumbs: {crumbs_count} available in {install_dir / 'know-how'}\n")
     else:
-        print(f"  1. Add to PATH: export PATH=\"{install_dir / 'bin'}:$PATH\"")
-    print("  2. Navigate to a repository")
-    print("  3. Initialize KNL: knl init")
-    print("  4. Create a task: knl create TASK-123")
-    print("  5. Get help: knl --help\n")
+        print()
+
+    # Generate intelligent next steps
+    print_info("Next steps:")
+    step_num = 1
+
+    # Step 1: PATH setup (only for repo-local)
+    if is_repo_local:
+        print(f"  {step_num}. Add to PATH: export PATH=\"{install_dir / 'bin'}:$PATH\"")
+        step_num += 1
+    else:
+        print(f"  {step_num}. Restart your shell or source your shell config")
+        step_num += 1
+
+    # Step 2: Navigate to repo (only if not already in one)
+    if not is_repo_local:
+        print(f"  {step_num}. Navigate to a repository")
+        step_num += 1
+
+    # Step 3: Check for existing .knowledge directory
+    knowledge_dir = Path.cwd() / '.knowledge'
+    if is_repo_local and knowledge_dir.exists():
+        # Check if it's properly initialized
+        tasks_dir = knowledge_dir / 'tasks'
+        has_structure = (
+            (knowledge_dir / 'cache').exists() or
+            tasks_dir.exists() or
+            (knowledge_dir / 'templates').exists()
+        )
+
+        if has_structure:
+            # Count tasks
+            task_count = 0
+            recent_tasks = []
+            if tasks_dir.exists():
+                task_dirs = sorted(
+                    [d for d in tasks_dir.iterdir() if d.is_dir()],
+                    key=lambda x: x.stat().st_mtime,
+                    reverse=True
+                )
+                task_count = len(task_dirs)
+                recent_tasks = [d.name for d in task_dirs[:3]]
+
+            if task_count > 0:
+                print(f"  {step_num}. Repository already initialized with {task_count} task(s)")
+                step_num += 1
+                if recent_tasks:
+                    print(f"  {step_num}. Resume recent task: knl show {recent_tasks[0]}")
+                    step_num += 1
+                print(f"  {step_num}. Or create new task: knl create TASK-123")
+                step_num += 1
+            else:
+                print(f"  {step_num}. Repository initialized, create first task: knl create TASK-123")
+                step_num += 1
+        else:
+            print(f"  {step_num}. Initialize KNL: knl init")
+            step_num += 1
+    else:
+        print(f"  {step_num}. Initialize KNL: knl init")
+        step_num += 1
+        print(f"  {step_num}. Create a task: knl create TASK-123")
+        step_num += 1
+
+    # Step: Browse crumbs if available
+    if crumbs_dir.exists() and crumbs_count > 0:
+        print(f"  {step_num}. Browse knowledge crumbs: knl crumb list")
+        step_num += 1
+
+    # Step: Get help
+    print(f"  {step_num}. Get help: knl help\n")
+
     print_info(f"For more information, visit: https://github.com/{args.repo}")
     print()
 
