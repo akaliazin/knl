@@ -925,6 +925,20 @@ def main():
             # Non-fatal, just means slower first run
             print_warning("Could not compile bytecode (non-fatal)")
 
+    # Show version information
+    print()
+    knl_bin = install_dir / 'bin' / 'knl'
+    if knl_bin.exists():
+        try:
+            # Run without capturing output so it displays to user
+            # Flush stdout before running to avoid buffering issues
+            sys.stdout.flush()
+            result = subprocess.run([str(knl_bin), 'version'])
+            sys.stdout.flush()
+        except Exception:
+            # Silently ignore any errors
+            pass
+
     # Print success message
     print()
     print_success("KNL installed successfully!\n")
@@ -941,16 +955,75 @@ def main():
     else:
         print()
 
+    # Generate intelligent next steps
     print_info("Next steps:")
-    if not is_repo_local:
-        print("  1. Restart your shell or source your shell config")
+    step_num = 1
+
+    # Step 1: PATH setup (only for repo-local)
+    if is_repo_local:
+        print(f"  {step_num}. Add to PATH: export PATH=\"{install_dir / 'bin'}:$PATH\"")
+        step_num += 1
     else:
-        print(f"  1. Add to PATH: export PATH=\"{install_dir / 'bin'}:$PATH\"")
-    print("  2. Navigate to a repository")
-    print("  3. Initialize KNL: knl init")
-    print("  4. Create a task: knl create TASK-123")
-    print("  5. Browse crumbs: ls " + str(install_dir / 'know-how' / 'crumbs'))
-    print("  6. Get help: knl --help\n")
+        print(f"  {step_num}. Restart your shell or source your shell config")
+        step_num += 1
+
+    # Step 2: Navigate to repo (only if not already in one)
+    if not is_repo_local:
+        print(f"  {step_num}. Navigate to a repository")
+        step_num += 1
+
+    # Step 3: Check for existing .knowledge directory
+    knowledge_dir = Path.cwd() / '.knowledge'
+    if is_repo_local and knowledge_dir.exists():
+        # Check if it's properly initialized
+        tasks_dir = knowledge_dir / 'tasks'
+        has_structure = (
+            (knowledge_dir / 'cache').exists() or
+            tasks_dir.exists() or
+            (knowledge_dir / 'templates').exists()
+        )
+
+        if has_structure:
+            # Count tasks
+            task_count = 0
+            recent_tasks = []
+            if tasks_dir.exists():
+                task_dirs = sorted(
+                    [d for d in tasks_dir.iterdir() if d.is_dir()],
+                    key=lambda x: x.stat().st_mtime,
+                    reverse=True
+                )
+                task_count = len(task_dirs)
+                recent_tasks = [d.name for d in task_dirs[:3]]
+
+            if task_count > 0:
+                print(f"  {step_num}. Repository already initialized with {task_count} task(s)")
+                step_num += 1
+                if recent_tasks:
+                    print(f"  {step_num}. Resume recent task: knl show {recent_tasks[0]}")
+                    step_num += 1
+                print(f"  {step_num}. Or create new task: knl create TASK-123")
+                step_num += 1
+            else:
+                print(f"  {step_num}. Repository initialized, create first task: knl create TASK-123")
+                step_num += 1
+        else:
+            print(f"  {step_num}. Initialize KNL: knl init")
+            step_num += 1
+    else:
+        print(f"  {step_num}. Initialize KNL: knl init")
+        step_num += 1
+        print(f"  {step_num}. Create a task: knl create TASK-123")
+        step_num += 1
+
+    # Step: Browse crumbs if available
+    if crumbs_dir.exists() and crumbs_count > 0:
+        print(f"  {step_num}. Browse knowledge crumbs: knl crumb list")
+        step_num += 1
+
+    # Step: Get help
+    print(f"  {step_num}. Get help: knl help\n")
+
     print_info(f"For more information, visit: https://github.com/{args.repo}")
     print()
 
