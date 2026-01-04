@@ -59,6 +59,9 @@ plugins:
   - search
   - autorefs
 
+hooks:
+  - docs/hooks.py
+
 extra:
   social:
     - icon: fontawesome/brands/github
