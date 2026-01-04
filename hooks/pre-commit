@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# Pre-commit hook to sync install.sh to docs/install.sh
+# This ensures GitHub Pages always has the latest installer
+
+set -e
+
+# Check if install.sh is being committed
+if git diff --cached --name-only | grep -q '^install.sh$'; then
+    echo "📝 Syncing install.sh to docs/install.sh..."
+
+    # Copy install.sh to docs/
+    cp install.sh docs/install.sh
+    chmod +x docs/install.sh
+
+    # Stage the updated docs/install.sh
+    git add docs/install.sh
+
+    echo "✓ docs/install.sh updated and staged"
+fi
+
+exit 0
