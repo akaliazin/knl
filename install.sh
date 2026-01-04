@@ -331,8 +331,9 @@ def download_and_install_knl(
     else:
         venv_python = venv_dir / 'bin' / 'python'
 
-    # Pin Python version in .python-version file
+    # Pin Python version using UV's native pinning
     try:
+        # Get Python version for pinning
         result = subprocess.run(
             [python_cmd, '-c',
              'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}")'],
@@ -341,11 +342,17 @@ def download_and_install_knl(
             check=True
         )
         python_version = result.stdout.strip()
-        python_version_file = install_dir / '.python-version'
-        python_version_file.write_text(python_version)
-        print_success(f"Pinned Python version {python_version} in {python_version_file}")
+
+        # Use UV to pin the Python version (creates .python-version file)
+        subprocess.run(
+            ['uv', 'python', 'pin', python_version],
+            cwd=install_dir,
+            check=True,
+            capture_output=True
+        )
+        print_success(f"Pinned Python version {python_version} using UV")
     except subprocess.CalledProcessError as e:
-        print_warning(f"Could not determine Python version: {e}")
+        print_warning(f"Could not pin Python version: {e}")
 
     # Install KNL
     if is_local_dev:
