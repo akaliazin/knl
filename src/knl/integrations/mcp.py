@@ -179,6 +179,18 @@ class MCPClient:
 
             self._connected = True
 
+        except ModuleNotFoundError as e:
+            # MCP server module not installed
+            if "knl_docs_analyzer" in str(e):
+                msg = (
+                    f"MCP server '{self._server_name}' is not installed.\n"
+                    "This is optional - the docs update command will work with limited functionality.\n"
+                    "To enable AI-powered analysis, install the MCP server:\n"
+                    "  cd mcp-servers/knl-docs-analyzer && uv pip install -e ."
+                )
+            else:
+                msg = f"Module not found while starting MCP server {self._server_name}: {e}"
+            raise MCPConnectionError(msg) from e
         except Exception as e:
             msg = f"Failed to connect to MCP server {self._server_name}: {e}"
             raise MCPConnectionError(msg) from e

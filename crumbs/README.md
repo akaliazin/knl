@@ -1,4 +1,4 @@
-# KNL Know-How
+# KNL Crumbs
 
 This directory contains **crumbs** - carefully collated pieces of knowledge about development tasks, patterns, and solutions. Think of them as bite-sized, reusable knowledge articles that capture best practices and lessons learned.
 
@@ -20,7 +20,7 @@ Crumbs are NOT:
 ## Directory Structure
 
 ```
-know-how/
+crumbs/
 ├── README.md                    # This file
 └── crumbs/
     ├── devops/                  # DevOps, CI/CD, deployment
@@ -106,7 +106,7 @@ Crumbs are structured for LLM consumption:
 
 Example prompt for AI:
 ```
-Search the know-how/crumbs/ directory for information about
+Search the crumbs/ directory for information about
 GitHub Pages deployment. Use the YAML metadata to find relevant
 crumbs and extract the setup steps.
 ```
@@ -128,7 +128,7 @@ Place the crumb in the most appropriate category directory. If unsure:
 
 ```bash
 # Create file in appropriate category
-touch know-how/crumbs/devops/my-new-crumb.md
+touch crumbs/devops/my-new-crumb.md
 ```
 
 ### 3. Add YAML Frontmatter
@@ -185,7 +185,7 @@ Before committing:
 ### 6. Commit and Share
 
 ```bash
-git add know-how/crumbs/category/your-crumb.md
+git add crumbs/category/your-crumb.md
 git commit -m "Add crumb: Brief description"
 ```
 
@@ -211,7 +211,7 @@ Crumbs should be:
 
 ## Integration with KNL
 
-Crumbs at repository root (`know-how/`) are:
+Crumbs at repository root (`crumbs/`) are:
 - **Version controlled** - Part of the KNL project
 - **Shared across projects** - Reusable knowledge
 - **AI-accessible** - Structured for LLM consumption
@@ -221,7 +221,7 @@ Project-specific knowledge goes in:
 - **`.knowledge/tasks/`** - Task-specific notes and context
 - **`.knowledge/templates/`** - Local customized templates
 
-Users can copy crumbs from `know-how/` to their project's `.knowledge/` for customization.
+Users can copy crumbs from `crumbs/` to their project's `.knowledge/` for customization.
 
 ## Examples
 

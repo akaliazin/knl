@@ -526,10 +526,20 @@ def update(
             f"  Proposal: {len(proposal.files)} files, {sum(len(f.updates) for f in proposal.files)} updates\n"
         )
 
-    except MCPError as e:
-        console.print(f"[red]Error:[/red] MCP server error: {e}")
-        console.print("[yellow]Note:[/yellow] Make sure MCP server is configured correctly")
-        console.print("  Falling back to heuristic analysis only.\n")
+    except Exception as e:
+        # MCP server not available - fall back gracefully
+        error_msg = str(e)
+
+        if "knl_docs_analyzer" in error_msg or "ModuleNotFoundError" in error_msg:
+            console.print("[yellow]Note:[/yellow] AI-powered analysis not available (MCP server not installed)")
+            console.print("  This is optional - continuing with heuristic analysis.\n")
+            console.print("[dim]To enable AI features:[/dim]")
+            console.print("[dim]  cd mcp-servers/knl-docs-analyzer[/dim]")
+            console.print("[dim]  uv pip install -e .[/dim]\n")
+        else:
+            console.print(f"[yellow]Warning:[/yellow] Could not connect to MCP server")
+            console.print(f"  Reason: {error_msg}")
+            console.print("  Continuing with heuristic analysis only.\n")
 
         # Create a minimal proposal from heuristics
         from ..models.docs import DocGap
@@ -577,8 +587,29 @@ def update(
 
     # Interactive approval
     if not proposal.files:
-        console.print("[yellow]No updates proposed.[/yellow]")
-        console.print("  The AI analysis didn't suggest any specific changes.\n")
+        console.print("[yellow]No specific file updates proposed.[/yellow]")
+
+        if proposal.gaps:
+            console.print("\n[bold]Documentation Gaps Identified:[/bold]")
+            for gap in proposal.gaps:
+                severity_color = {
+                    "critical": "red",
+                    "high": "yellow",
+                    "medium": "blue",
+                    "low": "dim",
+                }.get(gap.severity.value, "dim")
+                console.print(f"\n  [{severity_color}]{gap.severity.value.upper()}[/{severity_color}]")
+                console.print(f"  {gap.description}")
+                if gap.suggested_action:
+                    console.print(f"  [dim]→ {gap.suggested_action}[/dim]")
+
+            console.print("\n[bold]Recommended Actions:[/bold]")
+            console.print("  • Review the gaps above and update documentation manually")
+            console.print("  • Run [cyan]knl docs check[/cyan] to verify coverage")
+            console.print("  • Run [cyan]knl docs sync[/cyan] to update CLI reference\n")
+        else:
+            console.print("  No documentation issues detected.\n")
+
         return
 
     console.print(f"\n[bold]Reviewing {len(proposal.files)} file(s)...[/bold]\n")
