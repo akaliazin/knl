@@ -128,8 +128,23 @@ def get_install_location(force_user_local: bool = False) -> Path:
     return Path.home() / '.local' / 'knl'
 
 
-def get_config_location() -> Path:
-    """Get configuration directory location (XDG-compliant)."""
+def get_config_location(is_repo_local: bool = False, install_dir: Optional[Path] = None) -> Path:
+    """
+    Get configuration directory location.
+
+    Args:
+        is_repo_local: Whether this is a repo-local installation
+        install_dir: Installation directory (required for repo-local)
+
+    Returns:
+        Path to configuration directory
+    """
+    if is_repo_local:
+        if install_dir is None:
+            raise ValueError("install_dir required for repo-local config location")
+        return install_dir / 'config'
+
+    # User-local: use XDG-compliant location
     xdg_cache = os.environ.get('XDG_CACHE_HOME')
     if xdg_cache:
         return Path(xdg_cache) / 'knl'
@@ -772,7 +787,7 @@ def main():
     print_info(f"Installation type: {'repo-local' if is_repo_local else 'user-local'}\n")
 
     # Get config location
-    config_dir = get_config_location()
+    config_dir = get_config_location(is_repo_local, install_dir)
     print_info(f"Configuration directory: {config_dir}\n")
 
     # Installation mode
@@ -888,6 +903,27 @@ def main():
 
     # Create initial configuration
     create_initial_config(config_dir)
+
+    # Compile Python bytecode for faster first run (only for source installs)
+    if not args.compiled:
+        print_step("Compiling Python bytecode...")
+        venv_dir = install_dir / 'venv'
+        if platform.system() == 'Windows':
+            venv_python = venv_dir / 'Scripts' / 'python.exe'
+        else:
+            venv_python = venv_dir / 'bin' / 'python'
+
+        try:
+            # Compile all Python files in the venv's site-packages
+            subprocess.run(
+                [str(venv_python), '-m', 'compileall', '-q', str(venv_dir / 'lib')],
+                check=True,
+                capture_output=True
+            )
+            print_success("Bytecode compiled")
+        except subprocess.CalledProcessError:
+            # Non-fatal, just means slower first run
+            print_warning("Could not compile bytecode (non-fatal)")
 
     # Print success message
     print()

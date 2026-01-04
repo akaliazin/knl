@@ -118,5 +118,77 @@ def delete_task(
     task_cmd.delete(task_id=task_id, force=force)
 
 
+@app.command(name="help")
+def help_command(ctx: typer.Context) -> None:
+    """Show help information (equivalent to --help)."""
+    # Get the parent context (main app) and print its help
+    parent_ctx = ctx.parent
+    if parent_ctx:
+        console.print(parent_ctx.get_help())
+    else:
+        console.print(ctx.get_help())
+    raise typer.Exit()
+
+
+@app.command(name="version")
+def version_command() -> None:
+    """Show detailed version information."""
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    console.print("\n[bold blue]KNL[/bold blue] - Knowledge Retention Library\n")
+    console.print(f"Version: [green]{__version__}[/green]")
+
+    # Get Python version
+    python_version = f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}"
+    console.print(f"Python: [cyan]{python_version}[/cyan]")
+
+    # Check if there's a pinned Python version
+    try:
+        # Find KNL installation directory
+        knl_module_path = Path(__file__).parent.parent.parent
+        python_version_file = knl_module_path / ".knl" / ".python-version"
+        if python_version_file.exists():
+            pinned_version = python_version_file.read_text().strip()
+            console.print(f"Pinned Python: [cyan]{pinned_version}[/cyan]")
+    except Exception:
+        pass
+
+    # Get last commit timestamp if in a git repo
+    try:
+        result = subprocess.run(
+            ["git", "log", "-1", "--format=%ci", "--"],
+            capture_output=True,
+            text=True,
+            timeout=2,
+        )
+        if result.returncode == 0 and result.stdout.strip():
+            timestamp = result.stdout.strip()
+            console.print(f"Last commit: [yellow]{timestamp}[/yellow]")
+    except Exception:
+        pass
+
+    # Count crumbs if available
+    try:
+        # Look for crumbs in KNL installation
+        knl_module_path = Path(__file__).parent.parent.parent
+        crumbs_dir = knl_module_path / ".knl" / "know-how" / "crumbs"
+        if not crumbs_dir.exists():
+            # Try local know-how directory
+            crumbs_dir = knl_module_path / "know-how" / "crumbs"
+
+        if crumbs_dir.exists():
+            crumb_count = sum(1 for _ in crumbs_dir.rglob("*.md"))
+            console.print(f"Knowledge crumbs: [magenta]{crumb_count}[/magenta] available")
+        else:
+            console.print("Knowledge crumbs: [dim]none installed[/dim]")
+    except Exception:
+        pass
+
+    console.print()
+    raise typer.Exit()
+
+
 if __name__ == "__main__":
     app()
