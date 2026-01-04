@@ -3,8 +3,8 @@
 from dataclasses import dataclass, field
 from typing import Any
 
+import click
 import typer
-from typer.core import TyperCommand, TyperGroup
 
 
 @dataclass
@@ -64,7 +64,7 @@ def extract_option_info(param: Any) -> CommandOption:
         CommandOption with extracted information
     """
     # Determine parameter type
-    if isinstance(param, typer.core.TyperArgument):
+    if isinstance(param, click.Argument):
         param_type = "argument"
     elif param.is_flag:
         param_type = "flag"
@@ -89,13 +89,13 @@ def extract_option_info(param: Any) -> CommandOption:
         type_name=type_name,
         required=param.required,
         default=param.default,
-        help_text=param.help or "",
-        metavar=param.metavar,
+        help_text=getattr(param, "help", "") or "",
+        metavar=getattr(param, "metavar", None),
     )
 
 
 def extract_command_info(
-    command: TyperCommand | TyperGroup, command_name: str = ""
+    command: click.Command | click.Group, command_name: str = ""
 ) -> CommandInfo:
     """
     Extract help information from a Typer command.
@@ -113,7 +113,7 @@ def extract_command_info(
         help_text = command.callback.__doc__.strip()
 
     # Check if this is a command group
-    is_group = isinstance(command, TyperGroup)
+    is_group = isinstance(command, click.Group)
 
     # Extract options/arguments
     options = []
