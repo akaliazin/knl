@@ -145,10 +145,10 @@ def get_config_location(is_repo_local: bool = False, install_dir: Optional[Path]
         return install_dir / 'config'
 
     # User-local: use XDG-compliant location
-    xdg_cache = os.environ.get('XDG_CACHE_HOME')
-    if xdg_cache:
-        return Path(xdg_cache) / 'knl'
-    return Path.home() / '.cache' / 'knl'
+    xdg_config = os.environ.get('XDG_CONFIG_HOME')
+    if xdg_config:
+        return Path(xdg_config) / 'knl'
+    return Path.home() / '.config' / 'knl'
 
 
 def check_python_version(min_version: str = "3.14") -> Tuple[bool, str]:

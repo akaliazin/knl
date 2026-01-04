@@ -8,9 +8,9 @@ class KnlPaths:
     """Central path management for KNL."""
 
     # Global paths (XDG-compliant)
-    # Use $XDG_CACHE_HOME/knl or ~/.cache/knl
-    _xdg_cache = os.environ.get('XDG_CACHE_HOME')
-    GLOBAL_CONFIG_DIR = Path(_xdg_cache) / "knl" if _xdg_cache else Path.home() / ".cache" / "knl"
+    # Use $XDG_CONFIG_HOME/knl or ~/.config/knl
+    _xdg_config = os.environ.get('XDG_CONFIG_HOME')
+    GLOBAL_CONFIG_DIR = Path(_xdg_config) / "knl" if _xdg_config else Path.home() / ".config" / "knl"
     GLOBAL_CONFIG_FILE = GLOBAL_CONFIG_DIR / "config.toml"
     GLOBAL_CACHE_DIR = GLOBAL_CONFIG_DIR / "cache"
     GLOBAL_TEMPLATES_DIR = GLOBAL_CONFIG_DIR / "templates"
