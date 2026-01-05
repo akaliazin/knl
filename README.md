@@ -39,11 +39,12 @@ Think of it as a development assistant that learns from your work and helps you 
 - Archive or reset as needed
 
 ### Knowledge Crumbs
-- Curated development knowledge deployed with KNL
+- Curated development knowledge bundled with KNL package
+- Automatically deployed during installation
 - Bite-sized, reusable guides for common tasks
-- Categories: DevOps, Testing, Security, Development
+- Categories: DevOps, Testing, Security, Development, Tooling
 - LLM-friendly format with YAML metadata
-- Browse crumbs in `.knl/know-how/crumbs/` or `~/.local/knl/know-how/crumbs/`
+- Browse crumbs in `.knl/share/crumbs/` or `~/.local/share/knl/crumbs/`
 
 ## Requirements
 
@@ -72,6 +73,9 @@ When running the installer inside a git repository, KNL installs to `.knl/` in t
 ```bash
 cd your-repo
 curl -LsSf https://akaliazin.github.io/knl/install.sh | sh
+
+# Or explicitly request repo-local mode
+curl -LsSf https://akaliazin.github.io/knl/install.sh | sh -s -- --repo-local
 ```
 
 **Benefits:**
@@ -158,20 +162,21 @@ The installer is smart and will:
    - System installations
 3. **Detect git repository** and choose appropriate installation location
 4. Install UV if needed
-5. Create isolated virtual environment for KNL
+5. Create isolated virtual environment for KNL with pinned Python version
 6. Install KNL using the detected Python
-7. Create wrapper scripts (`knl` and `kdt` alias)
-8. **Deploy knowledge crumbs** - reusable development knowledge
-9. Update `.gitignore` (repo-local only)
-10. Create initial configuration in `~/.cache/knl/` (XDG-compliant)
+7. **Compile bytecode** for faster first run
+8. Create wrapper scripts (`knl` and `kdt` alias)
+9. **Extract bundled knowledge crumbs** from installed package
+10. Update `.gitignore` (repo-local only)
+11. Create initial configuration in `~/.config/knl/` (XDG-compliant)
 
 **For Compiled Binary Installation (`--compiled`):**
 1. **Find Python 3.8+** to run the binary (less restrictive)
 2. Download or copy compiled binary (self-contained `.pyz` file)
 3. Create wrapper scripts (`knl` and `kdt` alias)
-4. **Deploy knowledge crumbs** - reusable development knowledge
+4. **Extract bundled knowledge crumbs** from compiled package
 5. Update `.gitignore` (repo-local only)
-6. Create initial configuration
+6. Create initial configuration in `~/.config/knl/` (XDG-compliant)
 
 **Note:** No sudo/root privileges required. Everything installs to user directories.
 
@@ -321,6 +326,31 @@ knl crumb tags --sort count
 
 See the [Crumb CLI Reference](https://akaliazin.github.io/knl/cli/crumbs/) for complete documentation.
 
+### Documentation Synchronization
+
+```bash
+# Check documentation sync status
+knl docs update
+
+# Analyze documentation gaps (heuristic mode)
+# - Detects new files requiring documentation
+# - Identifies modified CLI commands needing reference updates
+# - Checks for missing CHANGELOG entries
+```
+
+Note: AI-powered documentation analysis will be available in the next release.
+
+### Version and Help
+
+```bash
+# Show detailed version information
+knl version
+# Displays: KNL version, Python version, last commit, crumbs count
+
+# Show help (equivalent to --help)
+knl help
+```
+
 ## Directory Structure
 
 ### KNL Installation Locations
@@ -331,11 +361,13 @@ See the [Crumb CLI Reference](https://akaliazin.github.io/knl/cli/crumbs/) for c
 ```
 your-project/
 ├── .knl/                    # KNL installation (git-ignored)
+│   ├── config/             # Repo-local configuration
+│   │   └── config.toml
 │   ├── venv/               # KNL's isolated Python environment
 │   ├── bin/                # Wrapper scripts (knl, kdt)
-│   ├── know-how/           # Deployed knowledge crumbs
-│   │   ├── README.md
-│   │   └── crumbs/         # Curated development knowledge
+│   ├── share/              # Data directory (XDG-compliant)
+│   │   └── crumbs/         # Bundled knowledge crumbs
+│   │       ├── README.md
 │   │       ├── devops/
 │   │       ├── testing/
 │   │       └── security/
@@ -349,9 +381,12 @@ your-project/
 ```
 your-project/
 ├── .knl/                    # KNL installation (git-ignored)
+│   ├── config/             # Repo-local configuration
+│   │   └── config.toml
 │   ├── knl.pyz             # Self-contained executable (~52MB)
 │   ├── bin/                # Wrapper scripts (knl, kdt)
-│   ├── know-how/           # Deployed knowledge crumbs
+│   ├── share/              # Data directory (XDG-compliant)
+│   │   └── crumbs/         # Bundled knowledge crumbs
 │   └── .version            # Installed KNL version
 ├── .knowledge/             # Knowledge base (git-ignored)
 └── .gitignore             # Updated to ignore .knl/ and .knowledge/
@@ -364,8 +399,13 @@ your-project/
 ~/.local/knl/               # KNL installation (system-wide)
 ├── venv/                   # KNL's isolated Python environment
 ├── bin/                    # Wrapper scripts (knl, kdt)
-├── know-how/               # Deployed knowledge crumbs
 └── .version                # Installed KNL version
+
+~/.config/knl/              # User-local config (XDG-compliant)
+└── config.toml             # Global settings
+
+~/.local/share/knl/         # User-local data (XDG-compliant)
+└── crumbs/                 # Bundled knowledge crumbs
 ```
 
 **Compiled Binary Mode:**
@@ -373,15 +413,25 @@ your-project/
 ~/.local/knl/               # KNL installation (system-wide)
 ├── knl.pyz                 # Self-contained executable
 ├── bin/                    # Wrapper scripts (knl, kdt)
-├── know-how/               # Deployed knowledge crumbs
 └── .version                # Installed KNL version
+
+~/.config/knl/              # User-local config (XDG-compliant)
+└── config.toml             # Global settings
+
+~/.local/share/knl/         # User-local data (XDG-compliant)
+└── crumbs/                 # Bundled knowledge crumbs
 ```
 
 ### Global Configuration (XDG-Compliant)
 ```
-~/.cache/knl/               # or $XDG_CACHE_HOME/knl/
+~/.config/knl/              # or $XDG_CONFIG_HOME/knl/
 ├── config.toml             # Global settings
-├── templates/              # Default templates
+└── templates/              # Default templates
+
+~/.local/share/knl/         # or $XDG_DATA_HOME/knl/
+└── crumbs/                 # Bundled knowledge crumbs
+
+~/.cache/knl/               # or $XDG_CACHE_HOME/knl/
 └── cache/                  # Global cache
 ```
 
@@ -512,13 +562,34 @@ knl/
 
 ## Roadmap
 
-- [x] Phase 1: Core infrastructure and CLI
-- [ ] Phase 2: Task management commands
-- [ ] Phase 3: MCP server for Claude Code integration
-- [ ] Phase 4: AI-powered code analysis
-- [ ] Phase 5: Test generation
-- [ ] Phase 6: Git workflow automation
-- [ ] Phase 7: Knowledge transfer and export
+- [x] **Phase 1: Core infrastructure and CLI** (v1.0.0)
+  - Task management with JIRA/GitHub integration
+  - Configuration system
+  - Knowledge base structure
+- [x] **Phase 2: Knowledge Crumbs** (v1.1.0 - v1.3.0)
+  - Crumbs framework and bundling system
+  - CLI commands for browsing crumbs
+  - Documentation synchronization (basic mode)
+  - XDG-compliant directory structure
+  - Installation improvements
+- [ ] **Phase 3: MCP server for Claude Code integration**
+  - Expose knowledge base to Claude Code
+  - Real-time context sharing
+- [ ] **Phase 4: AI-powered features**
+  - Code quality analysis
+  - Documentation synchronization (AI mode)
+  - Pattern recognition
+- [ ] **Phase 5: Test generation**
+  - Automated test creation from context
+  - Test templates based on learned patterns
+- [ ] **Phase 6: Git workflow automation**
+  - Smart commit messages
+  - PR summary generation
+  - Changelog automation
+- [ ] **Phase 7: Knowledge transfer and export**
+  - Export/import knowledge bases
+  - Cross-project learning
+  - Best practice summarization
 
 ## Contributing
 

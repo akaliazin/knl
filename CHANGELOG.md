@@ -5,6 +5,111 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.3.0] - 2026-01-05
+
+### Added
+
+#### Crumbs Bundling System
+- **Crumbs distributed with KNL package**: Knowledge crumbs now bundled in Python package (`src/knl/bundled_crumbs/`)
+- **Automatic extraction during installation**: Installer copies crumbs from installed package to data directory
+- **XDG-compliant data directories**:
+  - Repo-local: `.knl/share/crumbs/`
+  - User-local: `~/.local/share/knl/crumbs/` (or `$XDG_DATA_HOME/knl/crumbs/`)
+- **Smart path discovery**: `KnlPaths.get_bundled_crumbs_dir()` with priority search:
+  1. Repo-local installation
+  2. User-local installation
+  3. Development fallback (`<repo>/crumbs/`)
+- **Idempotent updates**: Re-installation preserves user modifications, only adds new crumbs
+- **Works for all modes**: Source and compiled binaries, repo-local and user-local
+
+#### Documentation Command (Basic Mode)
+- **New `knl docs update` command**: Semi-automated documentation synchronization
+- **Heuristic analysis**: Detects documentation gaps without AI:
+  - New files requiring documentation
+  - Modified CLI commands needing reference updates
+  - Missing CHANGELOG entries
+- **Graceful degradation**: Works without MCP server, shows actionable recommendations
+- **Foundation for AI**: Infrastructure ready for AI-powered analysis (Phase 4)
+
+#### New CLI Commands
+- **`knl help`**: Equivalent to `--help` for convenience
+- **Enhanced `knl version`**: Shows detailed version information:
+  - KNL version
+  - Python version (current and pinned)
+  - Last commit (hash + timestamp): `681ca95 2026-01-05 22:39:29 +0300`
+  - Knowledge crumbs count
+
+#### Installer Features
+- **`--repo-local` flag**: Explicit repo-local installation (mutually exclusive with `--user-local`)
+- **Default behavior preserved**: Repo-local if in git repo, otherwise user-local
+- **Python version pinning**: Uses UV's native `uv python pin` for validation
+- **Bytecode pre-compilation**: Faster first run with pre-compiled `.pyc` files
+- **Intelligent next steps**: Context-aware suggestions based on repository state
+- **Better error messages**: Detailed debugging info for crumbs extraction failures
+
+### Changed
+
+#### Configuration Locations (XDG-Compliant)
+- **User-local config**: Moved from `~/.cache/knl/` to `~/.config/knl/` (or `$XDG_CONFIG_HOME/knl/`)
+- **Repo-local config**: Changed from `.knl/` to `.knl/config/`
+- **Crumbs location**: Separated from config into `.knl/share/crumbs/` (repo-local) or `~/.local/share/knl/crumbs/` (user-local)
+- **Follows XDG Base Directory Specification**: Proper separation of config and data
+
+#### Crumbs Structure
+- **Simplified directory structure**: `know-how/crumbs/` → `crumbs/` at repo root
+- **Cleaner navigation**: Direct access without nested directories
+- **Bundled in package**: Included in wheel distribution via `pyproject.toml`
+
+#### Installer Improvements
+- **Uses venv Python**: Extracts crumbs using installed venv Python (not system Python)
+- **Better error handling**: Clear messages for missing packages or extraction failures
+- **Version display**: Shows `knl version` output after successful installation
+- **Crumbs in output**: Reports crumb count and location in success message
+
+#### Documentation Updates
+- **Git pre-commit hook**: Auto-syncs `install.sh` → `docs/install.sh` on commit
+- **MkDocs build hook**: Copies `install.sh` to built site during `mkdocs build`
+- **Always up-to-date**: GitHub Pages always serves latest installer
+
+### Fixed
+
+- **Critical**: Fixed crumbs extraction to use venv Python instead of system Python
+  - Resolves `ModuleNotFoundError: No module named 'knl'` during installation
+- **Type hints**: Fixed Pylance errors in `cli_help.py` by using Click types instead of `typer.core`
+- **Parameter naming**: Fixed `get_install_location()` to use `force_user_local` parameter consistently
+- **Crumb counting**: Excludes README.md from crumb count in `knl version`
+
+### Technical Details
+
+#### New Components
+- **`src/knl/bundled_crumbs/`**: Crumbs bundled with package
+- **`src/knl/core/paths.py`**: Added `get_bundled_crumbs_dir()` for crumbs discovery
+- **`src/knl/commands/docs.py`**: Documentation update command with heuristic analysis
+- **`src/knl/integrations/mcp.py`**: MCP client infrastructure (for future AI integration)
+- **`hooks/pre-commit`**: Git hook for install.sh synchronization
+- **`docs/hooks.py`**: MkDocs hook for installer deployment
+
+#### Installation Modes Tested
+- ✅ Repo-local clean install
+- ✅ Repo-local re-install (idempotent)
+- ✅ User-local clean install
+- ✅ User-local re-install (idempotent)
+- ✅ Crumbs extracted correctly in all modes
+- ✅ `knl crumb list` works in all modes
+
+#### Statistics
+- **7 commits** with comprehensive improvements
+- **93 tests passing** ✓
+- **2 starter crumbs** included (README + GitHub Pages setup guide)
+
+### Impact
+
+This checkpoint release significantly improves the installation experience and establishes a robust foundation for knowledge management. The crumbs bundling system ensures fresh installs immediately have access to curated development knowledge, while XDG-compliance provides a cleaner, more standard directory structure. The documentation command provides basic functionality that will be enhanced with AI in Phase 4.
+
+### Notes
+
+This is a **checkpoint release** focusing on installation improvements and crumbs infrastructure. The `knl docs update` command provides basic heuristic analysis; full AI-powered documentation synchronization will be implemented in the next release (Phase 4).
+
 ## [1.2.0] - 2025-12-31
 
 ### Added
@@ -249,6 +354,7 @@ Documented in PRINCIPLES.md:
 
 ---
 
+[1.3.0]: https://github.com/akaliazin/knl/releases/tag/v1.3.0
 [1.2.0]: https://github.com/akaliazin/knl/releases/tag/v1.2.0
 [1.1.0]: https://github.com/akaliazin/knl/releases/tag/v1.1.0
 [1.0.0]: https://github.com/akaliazin/knl/releases/tag/v1.0.0
