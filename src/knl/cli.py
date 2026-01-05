@@ -155,31 +155,29 @@ def version_command() -> None:
     except Exception:
         pass
 
-    # Get last commit timestamp if in a git repo
+    # Get last commit info (hash + timestamp) if in a git repo
     try:
+        # Get commit hash and timestamp together
         result = subprocess.run(
-            ["git", "log", "-1", "--format=%ci", "--"],
+            ["git", "log", "-1", "--format=%h %ci", "--"],
             capture_output=True,
             text=True,
             timeout=2,
         )
         if result.returncode == 0 and result.stdout.strip():
-            timestamp = result.stdout.strip()
-            console.print(f"Last commit: [yellow]{timestamp}[/yellow]")
+            commit_info = result.stdout.strip()
+            # Format: abc1234 2026-01-05 21:20:59 +0300
+            console.print(f"Last commit: [yellow]{commit_info}[/yellow]")
     except Exception:
         pass
 
     # Count crumbs if available
     try:
-        # Look for crumbs in KNL installation
-        knl_module_path = Path(__file__).parent.parent.parent
-        crumbs_dir = knl_module_path / ".knl" / "know-how" / "crumbs"
-        if not crumbs_dir.exists():
-            # Try local know-how directory
-            crumbs_dir = knl_module_path / "know-how" / "crumbs"
+        from knl.core.paths import KnlPaths
 
-        if crumbs_dir.exists():
-            crumb_count = sum(1 for _ in crumbs_dir.rglob("*.md"))
+        crumbs_dir = KnlPaths.get_bundled_crumbs_dir()
+        if crumbs_dir:
+            crumb_count = sum(1 for _ in crumbs_dir.rglob("*.md") if _.name.lower() != "readme.md")
             console.print(f"Knowledge crumbs: [magenta]{crumb_count}[/magenta] available")
         else:
             console.print("Knowledge crumbs: [dim]none installed[/dim]")

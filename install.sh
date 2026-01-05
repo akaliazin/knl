@@ -197,8 +197,12 @@ def copy_bundled_crumbs(install_dir: Path, is_repo_local: bool, python_cmd: str)
             check=True
         )
         source_crumbs = Path(result.stdout.strip())
+    except subprocess.CalledProcessError as e:
+        print_warning(f"Could not locate bundled crumbs in package")
+        print_warning(f"  Error: {e.stderr.strip() if e.stderr else 'Unknown error'}")
+        return
     except Exception as e:
-        print_warning(f"Could not locate bundled crumbs in package: {e}")
+        print_warning(f"Could not locate bundled crumbs: {e}")
         return
 
     if not source_crumbs.exists():
@@ -834,11 +838,20 @@ def main():
     parser = argparse.ArgumentParser(
         description='Install KNL (Knowledge Retention Library)'
     )
-    parser.add_argument(
+
+    # Location group - mutually exclusive
+    location_group = parser.add_mutually_exclusive_group()
+    location_group.add_argument(
+        '--repo-local',
+        action='store_true',
+        help='Install to repo-local directory (default if in git repo)'
+    )
+    location_group.add_argument(
         '--user-local',
         action='store_true',
         help='Install to user-local directory instead of repo-local'
     )
+
     parser.add_argument(
         '--version',
         help='Specific version to install (e.g., v0.1.0)'
@@ -869,8 +882,20 @@ def main():
     print_info("Starting KNL installation...\n")
 
     # Determine installation location
-    install_dir = get_install_location(args.user_local)
-    is_repo_local = is_git_repo() and not args.user_local
+    # Default: repo-local if in git repo, otherwise user-local
+    # --user-local forces user-local
+    # --repo-local forces repo-local (even outside git repo)
+    if args.user_local:
+        install_dir = get_install_location(force_user_local=True)
+        is_repo_local = False
+    elif args.repo_local:
+        install_dir = get_install_location(force_user_local=False)
+        is_repo_local = True
+    else:
+        # Default: repo-local if in git repo
+        in_git_repo = is_git_repo()
+        install_dir = get_install_location(force_user_local=not in_git_repo)
+        is_repo_local = in_git_repo
 
     print_info(f"Installation location: {install_dir}")
     print_info(f"Installation type: {'repo-local' if is_repo_local else 'user-local'}\n")
@@ -993,15 +1018,16 @@ def main():
     # Create initial configuration
     create_initial_config(config_dir)
 
+    # Determine the Python to use for extracting crumbs
+    venv_dir = install_dir / 'venv'
+    if platform.system() == 'Windows':
+        venv_python = venv_dir / 'Scripts' / 'python.exe'
+    else:
+        venv_python = venv_dir / 'bin' / 'python'
+
     # Compile Python bytecode for faster first run (only for source installs)
     if not args.compiled:
         print_step("Compiling Python bytecode...")
-        venv_dir = install_dir / 'venv'
-        if platform.system() == 'Windows':
-            venv_python = venv_dir / 'Scripts' / 'python.exe'
-        else:
-            venv_python = venv_dir / 'bin' / 'python'
-
         try:
             # Compile all Python files in the venv's site-packages
             subprocess.run(
@@ -1014,8 +1040,8 @@ def main():
             # Non-fatal, just means slower first run
             print_warning("Could not compile bytecode (non-fatal)")
 
-    # Copy bundled knowledge crumbs (after KNL is installed)
-    copy_bundled_crumbs(install_dir, is_repo_local, python_cmd)
+    # Copy bundled knowledge crumbs (after KNL is installed, use venv Python)
+    copy_bundled_crumbs(install_dir, is_repo_local, str(venv_python))
 
     # Show version information
     print()
