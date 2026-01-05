@@ -41,11 +41,12 @@ def list_crumbs(
     manager = CrumbManager()
 
     if not manager.crumbs_dir:
-        console.print(
-            "[yellow]No crumbs directory found.[/yellow]\n"
-            "Crumbs should be in .knl/know-how/crumbs/ or ~/.local/knl/know-how/crumbs/",
-            style="yellow",
-        )
+        console.print("[yellow]No crumbs directory found.[/yellow]")
+        console.print("\nCrumbs are searched for in:")
+        console.print("  1. Repo-local: [cyan].knl/share/crumbs/[/cyan]")
+        console.print("  2. User-local: [cyan]~/.local/share/knl/crumbs/[/cyan]")
+        console.print("  3. Development: [cyan]<repo>/crumbs/[/cyan]")
+        console.print("\n[dim]Tip: Reinstall KNL to get bundled crumbs[/dim]")
         raise typer.Exit(1)
 
     # Get crumbs with filters
@@ -162,6 +163,7 @@ def find(
 
     if not manager.crumbs_dir:
         console.print("[yellow]No crumbs directory found.[/yellow]")
+        console.print("[dim]Tip: Reinstall KNL to get bundled crumbs[/dim]")
         raise typer.Exit(1)
 
     crumbs = manager.find_crumbs(query, in_field=in_field, case_sensitive=case_sensitive)
@@ -187,6 +189,7 @@ def categories(
 
     if not manager.crumbs_dir:
         console.print("[yellow]No crumbs directory found.[/yellow]")
+        console.print("[dim]Tip: Reinstall KNL to get bundled crumbs[/dim]")
         raise typer.Exit(1)
 
     categories_dict = manager.get_categories()
@@ -247,6 +250,7 @@ def tags(
 
     if not manager.crumbs_dir:
         console.print("[yellow]No crumbs directory found.[/yellow]")
+        console.print("[dim]Tip: Reinstall KNL to get bundled crumbs[/dim]")
         raise typer.Exit(1)
 
     tags_dict = manager.get_tags()

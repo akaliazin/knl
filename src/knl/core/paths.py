@@ -97,3 +97,55 @@ class KnlPaths:
         """
         root = repo_root or cls.find_repo_root() or Path.cwd()
         return root / cls.LOCAL_TASKS_DIR / task_id
+
+    @classmethod
+    def get_bundled_crumbs_dir(cls) -> Path | None:
+        """
+        Find the bundled crumbs directory.
+
+        Searches in priority order:
+        1. Repo-local: <repo>/.knl/share/crumbs/ (if in a git repo)
+        2. User-local: $XDG_DATA_HOME/knl/crumbs/ or ~/.local/share/knl/crumbs/
+        3. Development fallback: <repo>/crumbs/ (for development from source)
+
+        Returns:
+            Path to crumbs directory, or None if not found
+        """
+        import subprocess
+
+        # Try repo-local first (if in a git repo)
+        try:
+            result = subprocess.run(
+                ['git', 'rev-parse', '--show-toplevel'],
+                capture_output=True,
+                text=True,
+                timeout=1,
+                check=False
+            )
+            if result.returncode == 0:
+                repo_root = Path(result.stdout.strip())
+
+                # Check for repo-local installation
+                repo_local_crumbs = repo_root / '.knl' / 'share' / 'crumbs'
+                if repo_local_crumbs.exists():
+                    return repo_local_crumbs
+
+                # Development fallback - source directory
+                dev_crumbs = repo_root / 'crumbs'
+                if dev_crumbs.exists():
+                    return dev_crumbs
+        except Exception:
+            # Git not available or other error - continue to user-local
+            pass
+
+        # Try user-local (XDG-compliant)
+        xdg_data = os.environ.get('XDG_DATA_HOME')
+        if xdg_data:
+            user_crumbs = Path(xdg_data) / 'knl' / 'crumbs'
+        else:
+            user_crumbs = Path.home() / '.local' / 'share' / 'knl' / 'crumbs'
+
+        if user_crumbs.exists():
+            return user_crumbs
+
+        return None

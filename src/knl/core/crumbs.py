@@ -25,24 +25,15 @@ class CrumbManager:
         """
         Find the crumbs directory.
 
-        Checks:
-        1. Repo-local: .knl/know-how/crumbs/
-        2. User-local: ~/.local/knl/know-how/crumbs/
+        Uses KnlPaths.get_bundled_crumbs_dir() which searches in priority order:
+        1. Repo-local: <repo>/.knl/share/crumbs/ (if in a git repo)
+        2. User-local: $XDG_DATA_HOME/knl/crumbs/ or ~/.local/share/knl/crumbs/
+        3. Development fallback: <repo>/crumbs/ (for development from source)
 
         Returns:
             Path to crumbs directory or None if not found
         """
-        # Try repo-local first
-        repo_local = Path.cwd() / ".knl" / "know-how" / "crumbs"
-        if repo_local.exists():
-            return repo_local
-
-        # Try user-local
-        user_local = Path.home() / ".local" / "knl" / "know-how" / "crumbs"
-        if user_local.exists():
-            return user_local
-
-        return None
+        return self.paths.get_bundled_crumbs_dir()
 
     def parse_crumb(self, file_path: Path) -> Crumb | None:
         """

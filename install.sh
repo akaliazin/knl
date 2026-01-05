@@ -151,6 +151,76 @@ def get_config_location(is_repo_local: bool = False, install_dir: Optional[Path]
     return Path.home() / '.config' / 'knl'
 
 
+def get_crumbs_location(is_repo_local: bool = False, install_dir: Optional[Path] = None) -> Path:
+    """
+    Get crumbs directory location.
+
+    Args:
+        is_repo_local: Whether this is a repo-local installation
+        install_dir: Installation directory (required for repo-local)
+
+    Returns:
+        Path to crumbs directory
+    """
+    if is_repo_local:
+        if install_dir is None:
+            raise ValueError("install_dir required for repo-local crumbs location")
+        return install_dir / 'share' / 'crumbs'
+
+    # User-local: use XDG-compliant location
+    xdg_data = os.environ.get('XDG_DATA_HOME')
+    if xdg_data:
+        return Path(xdg_data) / 'knl' / 'crumbs'
+    return Path.home() / '.local' / 'share' / 'knl' / 'crumbs'
+
+
+def copy_bundled_crumbs(install_dir: Path, is_repo_local: bool) -> None:
+    """
+    Copy bundled knowledge crumbs to the appropriate data directory.
+
+    Args:
+        install_dir: Installation directory
+        is_repo_local: Whether this is a repo-local installation
+    """
+    import shutil
+
+    # Find source crumbs in the repository
+    # The installer is in the repo root, so crumbs/ is a sibling
+    script_dir = Path(__file__).parent if Path(__file__).parent.exists() else Path.cwd()
+    source_crumbs = script_dir / 'crumbs'
+
+    if not source_crumbs.exists():
+        print_warning("Bundled crumbs not found in repository, skipping...")
+        return
+
+    # Determine destination based on installation type
+    crumbs_dir = get_crumbs_location(is_repo_local, install_dir)
+
+    # Copy crumbs
+    if crumbs_dir.exists():
+        print_step("Updating bundled crumbs...")
+        # Update existing - only copy new files to preserve user modifications
+        updated_count = 0
+        for item in source_crumbs.rglob('*'):
+            if item.is_file() and item.suffix == '.md':
+                rel_path = item.relative_to(source_crumbs)
+                dest = crumbs_dir / rel_path
+                if not dest.exists():
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(item, dest)
+                    updated_count += 1
+        if updated_count > 0:
+            print_success(f"Added {updated_count} new crumb(s)")
+        else:
+            print_success("Crumbs already up to date")
+    else:
+        print_step("Installing bundled crumbs...")
+        crumbs_dir.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copytree(source_crumbs, crumbs_dir)
+        crumb_count = sum(1 for _ in crumbs_dir.rglob('*.md'))
+        print_success(f"Installed {crumb_count} crumb(s)")
+
+
 def check_python_version(min_version: str = "3.14") -> Tuple[bool, str]:
     """
     Check if current Python meets minimum version requirement.
@@ -932,6 +1002,9 @@ def main():
             # Non-fatal, just means slower first run
             print_warning("Could not compile bytecode (non-fatal)")
 
+    # Copy bundled knowledge crumbs
+    copy_bundled_crumbs(install_dir, is_repo_local)
+
     # Show version information
     print()
     knl_bin = install_dir / 'bin' / 'knl'
@@ -955,10 +1028,10 @@ def main():
     print_info(f"Configuration: {config_dir}")
 
     # Check if crumbs were deployed
-    crumbs_dir = install_dir / 'know-how' / 'crumbs'
+    crumbs_dir = get_crumbs_location(is_repo_local, install_dir)
     if crumbs_dir.exists():
         crumbs_count = sum(1 for _ in crumbs_dir.rglob('*.md'))
-        print_info(f"Knowledge crumbs: {crumbs_count} available in {install_dir / 'know-how'}\n")
+        print_info(f"Knowledge crumbs: {crumbs_count} available in {crumbs_dir}\n")
     else:
         print()
 
