@@ -118,6 +118,12 @@ kdt = "knl.cli:app"
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src/knl"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/knl/bundled_crumbs" = "knl/bundled_crumbs"
+
 [dependency-groups]
 dev = [
     "pytest>=8.3.0",

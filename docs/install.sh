@@ -174,23 +174,35 @@ def get_crumbs_location(is_repo_local: bool = False, install_dir: Optional[Path]
     return Path.home() / '.local' / 'share' / 'knl' / 'crumbs'
 
 
-def copy_bundled_crumbs(install_dir: Path, is_repo_local: bool) -> None:
+def copy_bundled_crumbs(install_dir: Path, is_repo_local: bool, python_cmd: str) -> None:
     """
-    Copy bundled knowledge crumbs to the appropriate data directory.
+    Copy bundled knowledge crumbs from installed KNL package.
 
     Args:
         install_dir: Installation directory
         is_repo_local: Whether this is a repo-local installation
+        python_cmd: Python command to use
     """
     import shutil
+    import subprocess
 
-    # Find source crumbs in the repository
-    # The installer is in the repo root, so crumbs/ is a sibling
-    script_dir = Path(__file__).parent if Path(__file__).parent.exists() else Path.cwd()
-    source_crumbs = script_dir / 'crumbs'
+    # Find bundled crumbs in the installed KNL package
+    try:
+        result = subprocess.run(
+            [python_cmd, '-c',
+             'import knl; from pathlib import Path; '
+             'print(Path(knl.__file__).parent / "bundled_crumbs")'],
+            capture_output=True,
+            text=True,
+            check=True
+        )
+        source_crumbs = Path(result.stdout.strip())
+    except Exception as e:
+        print_warning(f"Could not locate bundled crumbs in package: {e}")
+        return
 
     if not source_crumbs.exists():
-        print_warning("Bundled crumbs not found in repository, skipping...")
+        print_warning("Bundled crumbs not found in installed package, skipping...")
         return
 
     # Determine destination based on installation type
@@ -1002,8 +1014,8 @@ def main():
             # Non-fatal, just means slower first run
             print_warning("Could not compile bytecode (non-fatal)")
 
-    # Copy bundled knowledge crumbs
-    copy_bundled_crumbs(install_dir, is_repo_local)
+    # Copy bundled knowledge crumbs (after KNL is installed)
+    copy_bundled_crumbs(install_dir, is_repo_local, python_cmd)
 
     # Show version information
     print()
